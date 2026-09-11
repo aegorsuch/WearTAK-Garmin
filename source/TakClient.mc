@@ -2,11 +2,28 @@ import Toybox.ActivityMonitor;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Position;
-import Toybox.StringUtil;
 import Toybox.System;
 import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
+
+class PhoneRelayListener extends Communications.ConnectionListener {
+    var client;
+
+    function initialize(relayClient) {
+        ConnectionListener.initialize();
+        client = relayClient;
+    }
+
+    function onComplete() as Void {
+        client.onRelayTransmitComplete();
+    }
+
+    function onError() as Void {
+        client.onRelayTransmitError();
+    }
+}
+
 
 // Handles the connection to a TAK server and periodic location reporting.
 //
@@ -30,8 +47,263 @@ class TakClient {
     var incomingCotCallback as Method? = null;
 
     function initialize() {
+        Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
     }
 
+    function updatePosition(info as Position.Info) as Void {
+        lastPosition = info;
+        var wasMoving = moving;
+        moving = info.speed != null && info.speed >= 0.5;
+        if (wasMoving != moving && isConnected() && TakSettings.getTrackingMode() == :dynamic) {
+            scheduleReporting(false);
+        }
+    }
+
+    function setAlerting(value as Boolean) as Void {
+        if (alerting == value) {
+            return;
+        }
+        alerting = value;
+        if (isConnected() && TakSettings.getTrackingMode() == :dynamic) {
+            scheduleReporting(false);
+        }
+        if (!alerting) {
+            sendEmergency(:CANCEL);
+        }
+    }
+
+    function isAlerting() as Boolean {
+        return alerting;
+    }
+
+    function refreshReportingSchedule() as Void {
+        if (isConnected()) {
+            scheduleReporting(false);
+        }
+    }
+
+    function isConnected() as Boolean {
+        return status == :connected;
+    }
+
+    function connect() as Void {
+        if (status == :connecting || isConnected()) {
+            return;
+        }
+        status = :connecting;
+        transmit("relay_hello", {"watchLabel" => callsign(), "protocolVersion" => 1});
+        notifyStatusChanged();
+    }
+
+    function disconnect() as Void {
+        stopReporting();
+        alerting = false;
+        status = :idle;
+        notifyStatusChanged();
+    }
+
+    function startReporting() as Void {
+        if (reportTimer == null) {
+            reportTimer = new Timer.Timer();
+        }
+        scheduleReporting(true);
+        sendLocation();
+    }
+
+    function stopReporting() as Void {
+        if (reportTimer != null) {
+            reportTimer.stop();
+        }
+        scheduledInterval = null;
+    }
+
+    function scheduleReporting(force as Boolean) as Void {
+        var interval = reportingIntervalSeconds() * 1000;
+        if (!force && scheduledInterval == interval) {
+            return;
+        }
+        if (reportTimer == null) {
+            reportTimer = new Timer.Timer();
+        }
+        reportTimer.stop();
+        reportTimer.start(method(:sendLocation), interval, true);
+        scheduledInterval = interval;
+    }
+
+    function reportingIntervalSeconds() as Number {
+        if (TakSettings.getTrackingMode() == :static) {
+            return configuredInterval(TakSettings.getStaticInterval(), 60);
+        }
+        if (alerting) {
+            return configuredInterval(TakSettings.getAlertInterval(), 10);
+        }
+        if (moving) {
+            return configuredInterval(TakSettings.getMovingInterval(), 60);
+        }
+        return configuredInterval(TakSettings.getStationaryInterval(), 3600);
+    }
+
+    function configuredInterval(value as String, defaultSeconds as Number) as Number {
+        var seconds = value.toNumber();
+        return seconds == null || seconds <= 0 ? defaultSeconds : seconds;
+    }
+
+    function sendLocation() as Void {
+        if (!isConnected() || lastPosition == null || lastPosition.position == null) {
+            return;
+        }
+        var degrees = lastPosition.position.toDegrees();
+        var payload = {
+            "lat" => degrees[0], "lon" => degrees[1], "hae" => lastPosition.altitude,
+            "course" => lastPosition.heading, "speed" => lastPosition.speed,
+            "cs" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "tStale" => cotTimestamp(Time.now().add(new Time.Duration(120)))
+        };
+        addHealthTelemetry(payload);
+        transmit("pli", payload);
+    }
+
+    function onRelayTransmitComplete() as Void {
+        if (status != :connecting) {
+            return;
+        }
+        status = :connected;
+        startReporting();
+        transmit("entity_sync_request", {"limit" => 50, "protocolVersion" => 1});
+        notifyStatusChanged();
+    }
+
+    function onRelayTransmitError() as Void {
+        if (status == :idle) {
+            return;
+        }
+        stopReporting();
+        alerting = false;
+        status = :failed;
+        notifyStatusChanged();
+    }
+
+    function sendMarker(id as String, location as Position.Location, type as Symbol, label as String) as Void {
+        if (!isConnected()) {
+            return;
+        }
+        var degrees = location.toDegrees();
+        var markerType = type == :hostile ? "a-h-G-E-S" : type == :friendly ? "a-f-G-E-S" : type == :obstacle ? "a-o-G-E-S" : "a-u-G-E-S";
+        transmit("marker", {
+            "uid" => "garmin-" + callsign() + "-marker-" + id,
+            "lat" => degrees[0], "lon" => degrees[1], "type" => markerType,
+            "title" => label, "cs" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "tStale" => cotTimestamp(Time.now().add(new Time.Duration(3600)))
+        });
+    }
+
+    function sendSosEvent() as Void {
+        if (!isConnected() || lastPosition == null || lastPosition.position == null) {
+            return;
+        }
+        setAlerting(true);
+        sendEmergency(:ALERT);
+    }
+
+    function sendEmergency(state as Symbol) as Void {
+        if (!isConnected() || lastPosition == null || lastPosition.position == null) {
+            return;
+        }
+        var degrees = lastPosition.position.toDegrees();
+        transmit("emergency", {
+            "uid" => "garmin-" + callsign() + "-sos", "state" => state == :ALERT ? "ALERT" : "CANCEL",
+            "lat" => degrees[0], "lon" => degrees[1], "hae" => lastPosition.altitude,
+            "cs" => callsign(), "callsign" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "tStale" => cotTimestamp(Time.now().add(new Time.Duration(3600)))
+        });
+    }
+
+    function addHealthTelemetry(payload as Dictionary) as Void {
+        if (!TakSettings.isHealthTelemetryEnabled()) {
+            return;
+        }
+        var info = ActivityMonitor.getInfo();
+        if (info.steps != null) {
+            payload.put("steps", info.steps);
+        }
+        if (info.respirationRate != null) {
+            payload.put("respirationRate", info.respirationRate);
+        }
+        var sample = ActivityMonitor.getHeartRateHistory(1, true).next();
+        if (sample != null && sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
+            payload.put("heartRateBpm", sample.heartRate);
+        }
+    }
+
+    function transmit(msgType as String, payload as Dictionary) as Void {
+        Communications.transmit({"msgType" => msgType, "payload" => payload}, null, new PhoneRelayListener(self));
+    }
+
+    function onPhoneMessage(message as Communications.PhoneAppMessage) as Void {
+        if (!(message.data instanceof Dictionary)) {
+            return;
+        }
+        var envelope = message.data as Dictionary;
+        var msgType = envelope.get("msgType");
+        var payload = envelope.get("payload");
+        if ((msgType != "entity" && msgType != "entities") || !(payload instanceof Dictionary) || incomingCotCallback == null) {
+            return;
+        }
+        if (msgType == "entity") {
+            forwardEntity(payload as Dictionary);
+            return;
+        }
+        var entities = (payload as Dictionary).get("entities");
+        if (entities instanceof Array) {
+            for (var index = 0; index < entities.size(); index++) {
+                if (entities[index] instanceof Dictionary) {
+                    forwardEntity(entities[index] as Dictionary);
+                }
+            }
+        }
+    }
+
+    function forwardEntity(entity as Dictionary) as Void {
+        var uid = entity.get("uid");
+        var latitude = entity.get("lat");
+        var longitude = entity.get("lon");
+        var cotType = entity.get("type");
+        if (uid != null && latitude != null && longitude != null && cotType != null) {
+            incomingCotCallback.invoke(uid.toString(), (latitude as Number).toFloat(), (longitude as Number).toFloat(), cotType.toString());
+        }
+    }
+
+    function cotTimestamp(moment as Time.Moment) as String {
+        var info = Time.Gregorian.info(moment, Time.FORMAT_SHORT);
+        return info.year.format("%04d") + "-" + info.month.format("%02d") + "-" + info.day.format("%02d")
+            + "T" + info.hour.format("%02d") + ":" + info.min.format("%02d") + ":" + info.sec.format("%02d") + "Z";
+    }
+
+    function callsign() as String {
+        return TakSettings.getCallsign();
+    }
+
+    function notifyStatusChanged() as Void {
+        if (statusCallback != null) {
+            statusCallback.invoke();
+        }
+    }
+
+    function statusText() as String {
+        if (status == :connecting) {
+            return WatchUi.loadResource(Rez.Strings.StatusConnecting);
+        } else if (status == :connected) {
+            return WatchUi.loadResource(Rez.Strings.StatusConnected);
+        } else if (status == :failed) {
+            return WatchUi.loadResource(Rez.Strings.StatusFailed);
+        }
+        return WatchUi.loadResource(Rez.Strings.StatusIdle);
+    }
+
+}
+
+/* Legacy direct HTTPS TAK transport intentionally disabled. ATAK now owns
+ * server credentials, certificates, connection lifecycle, and CoT routing.
     function updatePosition(info as Position.Info) as Void {
         lastPosition = info;
         var wasMoving = moving;
@@ -444,3 +716,4 @@ class TakClient {
         return WatchUi.loadResource(Rez.Strings.StatusIdle);
     }
 }
+*/

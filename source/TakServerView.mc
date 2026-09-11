@@ -1,21 +1,15 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Builds the TAK server connection settings menu.
+// Builds phone relay and local reporting settings. ATAK owns server access.
 function buildTakServerMenu() as WatchUi.Menu2 {
     var menu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.MenuTitleTakServer)});
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelServerUrl), displayValue(TakSettings.getServerUrl()), :serverUrl, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelServerName), displayValue(TakSettings.getServerName()), :serverName, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelUsername), displayValue(TakSettings.getUsername()), :username, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelPassword), maskedPassword(), :password, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelPort), displayValue(TakSettings.getPort()), :port, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelServerName), displayValue(TakSettings.getCallsign()), :serverName, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelTrackingMode), trackingModeLabel(), :trackingMode, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelAlertInterval), TakSettings.getAlertInterval(), :alertInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelMovingInterval), TakSettings.getMovingInterval(), :movingInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStationaryInterval), TakSettings.getStationaryInterval(), :stationaryInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStaticInterval), TakSettings.getStaticInterval(), :staticInterval, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotPath), displayValue(TakSettings.getIncomingCotPath()), :incomingCotPath, null));
-    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotInterval), TakSettings.getIncomingCotInterval(), :incomingCotInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelHealthTelemetry), healthTelemetryLabel(), :healthTelemetry, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelSosControl), null, :sos, null));
     menu.addItem(new WatchUi.MenuItem(connectActionLabel(), null, :toggleConnect, null));
@@ -66,16 +60,8 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (id == :serverUrl) {
-            editField(:serverUrl, TakSettings.getServerUrl());
-        } else if (id == :serverName) {
-            editField(:serverName, TakSettings.getServerName());
-        } else if (id == :username) {
-            editField(:username, TakSettings.getUsername());
-        } else if (id == :password) {
-            editField(:password, TakSettings.getPassword());
-        } else if (id == :port) {
-            editField(:port, TakSettings.getPort());
+        if (id == :serverName) {
+            editField(:serverName, TakSettings.getCallsign());
         } else if (id == :trackingMode) {
             showTrackingModeMenu();
         } else if (id == :alertInterval) {
@@ -86,10 +72,6 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             editField(:stationaryInterval, TakSettings.getStationaryInterval());
         } else if (id == :staticInterval) {
             editField(:staticInterval, TakSettings.getStaticInterval());
-        } else if (id == :incomingCotPath) {
-            editField(:incomingCotPath, TakSettings.getIncomingCotPath());
-        } else if (id == :incomingCotInterval) {
-            editField(:incomingCotInterval, TakSettings.getIncomingCotInterval());
         } else if (id == :healthTelemetry) {
             TakSettings.setHealthTelemetryEnabled(!TakSettings.isHealthTelemetryEnabled());
             refreshItem(:healthTelemetry);
@@ -137,16 +119,8 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onFieldEntered(fieldId as Symbol, text as String) as Void {
-        if (fieldId == :serverUrl) {
-            TakSettings.setServerUrl(text);
-        } else if (fieldId == :serverName) {
-            TakSettings.setServerName(text);
-        } else if (fieldId == :username) {
-            TakSettings.setUsername(text);
-        } else if (fieldId == :password) {
-            TakSettings.setPassword(text);
-        } else if (fieldId == :port) {
-            TakSettings.setPort(text);
+        if (fieldId == :serverName) {
+            TakSettings.setCallsign(text);
         } else if (fieldId == :alertInterval) {
             TakSettings.setAlertInterval(text);
         } else if (fieldId == :movingInterval) {
@@ -155,10 +129,6 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             TakSettings.setStationaryInterval(text);
         } else if (fieldId == :staticInterval) {
             TakSettings.setStaticInterval(text);
-        } else if (fieldId == :incomingCotPath) {
-            TakSettings.setIncomingCotPath(text);
-        } else if (fieldId == :incomingCotInterval) {
-            TakSettings.setIncomingCotInterval(text);
         }
         refreshItem(fieldId);
         app.getTakClient().refreshReportingSchedule();
@@ -169,16 +139,8 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (item == null) {
             return;
         }
-        if (fieldId == :password) {
-            item.setSubLabel(maskedPassword());
-        } else if (fieldId == :serverUrl) {
-            item.setSubLabel(displayValue(TakSettings.getServerUrl()));
-        } else if (fieldId == :serverName) {
-            item.setSubLabel(displayValue(TakSettings.getServerName()));
-        } else if (fieldId == :username) {
-            item.setSubLabel(displayValue(TakSettings.getUsername()));
-        } else if (fieldId == :port) {
-            item.setSubLabel(displayValue(TakSettings.getPort()));
+        if (fieldId == :serverName) {
+            item.setSubLabel(displayValue(TakSettings.getCallsign()));
         } else if (fieldId == :trackingMode) {
             item.setSubLabel(trackingModeLabel());
         } else if (fieldId == :alertInterval) {
@@ -189,10 +151,6 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             item.setSubLabel(TakSettings.getStationaryInterval());
         } else if (fieldId == :staticInterval) {
             item.setSubLabel(TakSettings.getStaticInterval());
-        } else if (fieldId == :incomingCotPath) {
-            item.setSubLabel(displayValue(TakSettings.getIncomingCotPath()));
-        } else if (fieldId == :incomingCotInterval) {
-            item.setSubLabel(TakSettings.getIncomingCotInterval());
         } else if (fieldId == :healthTelemetry) {
             item.setSubLabel(healthTelemetryLabel());
         }

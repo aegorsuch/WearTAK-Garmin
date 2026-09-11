@@ -35,6 +35,15 @@ module TakSettings {
         Application.Storage.setValue(KEY_SERVER_NAME, value);
     }
 
+    function getCallsign() as String {
+        var value = Application.Storage.getValue(KEY_SERVER_NAME);
+        return value == null || value.equals("") ? "Garmin" : value;
+    }
+
+    function setCallsign(value as String) as Void {
+        Application.Storage.setValue(KEY_SERVER_NAME, value);
+    }
+
     function getUsername() as String {
         var value = Application.Storage.getValue(KEY_USERNAME);
         return value == null ? "" : value;
