@@ -16,6 +16,7 @@ function buildTakServerMenu() as WatchUi.Menu2 {
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStaticInterval), TakSettings.getStaticInterval(), :staticInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotPath), displayValue(TakSettings.getIncomingCotPath()), :incomingCotPath, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotInterval), TakSettings.getIncomingCotInterval(), :incomingCotInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelHealthTelemetry), healthTelemetryLabel(), :healthTelemetry, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelSosControl), null, :sos, null));
     menu.addItem(new WatchUi.MenuItem(connectActionLabel(), null, :toggleConnect, null));
     return menu;
@@ -45,6 +46,12 @@ function trackingModeLabel() as String {
     return TakSettings.getTrackingMode() == :static
         ? WatchUi.loadResource(Rez.Strings.TrackingModeStatic)
         : WatchUi.loadResource(Rez.Strings.TrackingModeDynamic);
+}
+
+function healthTelemetryLabel() as String {
+    return TakSettings.isHealthTelemetryEnabled()
+        ? WatchUi.loadResource(Rez.Strings.LabelEnabled)
+        : WatchUi.loadResource(Rez.Strings.LabelDisabled);
 }
 
 class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
@@ -83,6 +90,9 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             editField(:incomingCotPath, TakSettings.getIncomingCotPath());
         } else if (id == :incomingCotInterval) {
             editField(:incomingCotInterval, TakSettings.getIncomingCotInterval());
+        } else if (id == :healthTelemetry) {
+            TakSettings.setHealthTelemetryEnabled(!TakSettings.isHealthTelemetryEnabled());
+            refreshItem(:healthTelemetry);
         } else if (id == :sos) {
             showSosConfirmation();
         } else if (id == :toggleConnect) {
@@ -183,6 +193,8 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             item.setSubLabel(displayValue(TakSettings.getIncomingCotPath()));
         } else if (fieldId == :incomingCotInterval) {
             item.setSubLabel(TakSettings.getIncomingCotInterval());
+        } else if (fieldId == :healthTelemetry) {
+            item.setSubLabel(healthTelemetryLabel());
         }
         WatchUi.requestUpdate();
     }

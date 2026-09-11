@@ -15,6 +15,7 @@ module TakSettings {
     const KEY_STATIC_INTERVAL = "tak.staticInterval";
     const KEY_INCOMING_COT_PATH = "tak.incomingCotPath";
     const KEY_INCOMING_COT_INTERVAL = "tak.incomingCotInterval";
+    const KEY_HEALTH_TELEMETRY_ENABLED = "tak.healthTelemetryEnabled";
 
     function getServerUrl() as String {
         var value = Application.Storage.getValue(KEY_SERVER_URL);
@@ -115,6 +116,14 @@ module TakSettings {
 
     function setIncomingCotInterval(value as String) as Void {
         Application.Storage.setValue(KEY_INCOMING_COT_INTERVAL, value);
+    }
+
+    function isHealthTelemetryEnabled() as Boolean {
+        return Application.Storage.getValue(KEY_HEALTH_TELEMETRY_ENABLED) == "true";
+    }
+
+    function setHealthTelemetryEnabled(enabled as Boolean) as Void {
+        Application.Storage.setValue(KEY_HEALTH_TELEMETRY_ENABLED, enabled ? "true" : "false");
     }
 
     function getInterval(key as String, defaultValue as String) as String {

@@ -1,3 +1,4 @@
+import Toybox.ActivityMonitor;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Position;
@@ -243,7 +244,26 @@ class TakClient {
 
         return "<event version=\"2.0\" uid=\"" + uid + "\" type=\"a-f-G-U-C\" time=\"" + now + "\" start=\"" + now + "\" stale=\"" + stale + "\" how=\"m-g\">"
             + "<point lat=\"" + latitude.toString() + "\" lon=\"" + longitude.toString() + "\" hae=\"" + hae + "\" ce=\"9999999.0\" le=\"9999999.0\"/>"
-            + "<detail><contact callsign=\"" + safeCallsign + "\"/><uid Droid=\"" + safeCallsign + "\"/></detail></event>";
+            + "<detail><contact callsign=\"" + safeCallsign + "\"/><uid Droid=\"" + safeCallsign + "\"/>" + healthTelemetryDetail() + "</detail></event>";
+    }
+
+    function healthTelemetryDetail() as String {
+        if (!TakSettings.isHealthTelemetryEnabled()) {
+            return "";
+        }
+        var info = ActivityMonitor.getInfo();
+        var attributes = "";
+        if (info.steps != null) {
+            attributes += " steps=\"" + info.steps.toString() + "\"";
+        }
+        if (info.respirationRate != null) {
+            attributes += " respirationRate=\"" + info.respirationRate.toString() + "\"";
+        }
+        var sample = ActivityMonitor.getHeartRateHistory(1, true).next();
+        if (sample != null && sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
+            attributes += " heartRate=\"" + sample.heartRate.toString() + "\"";
+        }
+        return attributes.equals("") ? "" : "<_garmin" + attributes + "/>";
     }
 
     function buildMarkerEvent(id as String, latitude, longitude, type as Symbol, label as String) as String {

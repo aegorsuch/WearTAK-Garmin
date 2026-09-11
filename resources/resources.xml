@@ -21,6 +21,9 @@
     <string id="LabelStaticInterval">Static seconds</string>
     <string id="LabelIncomingCotPath">Incoming CoT path</string>
     <string id="LabelIncomingCotInterval">Incoming seconds</string>
+    <string id="LabelHealthTelemetry">Health telemetry</string>
+    <string id="LabelEnabled">Enabled</string>
+    <string id="LabelDisabled">Disabled</string>
     <string id="LabelSosControl">SOS / Clear</string>
     <string id="LabelSendSos">Send SOS</string>
     <string id="LabelCancel">Cancel</string>

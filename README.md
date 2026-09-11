@@ -27,6 +27,9 @@ viewing position and saving manually placed points.
 	entities on the map.
 - Retries failed TAK requests after 5, 15, and 60 seconds before reporting a
 	connection failure.
+- Supports opt-in heart-rate, respiration-rate, and step telemetry in a
+	Garmin-specific CoT detail extension when the device makes those readings
+	available.
 - Stores TAK endpoint settings locally on the watch.
 
 ## Using the app
@@ -45,6 +48,12 @@ Set **Incoming CoT path** only when the TAK deployment provides an HTTPS path
 that returns CoT XML events. It is blank by default because no single incoming
 REST endpoint is portable across TAK Server deployments. **Send SOS** opens a
 separate confirmation before transmitting; selecting it again clears alerting.
+
+**Health telemetry** is disabled by default. When enabled, position reports may
+include `<_garmin heartRate="..." respirationRate="..." steps="..."/>` inside
+the CoT `detail` element. This is a Garmin-specific extension, not a standard
+TAK health schema; confirm that the receiving system accepts and handles it
+before using it operationally.
 
 The current CoT publisher posts XML events to
 `https://<server>:<port>/Marti/api/cot`. The target TAK Server must expose this
@@ -74,8 +83,10 @@ field use.
 	alert-rate reporting, subject to target TAK Server policy.
 5. **Operational reliability** - implemented: bounded reconnect attempts and
 	request-status feedback within Connect IQ lifecycle limits.
-6. **Garmin sensors** - evaluate supported heart-rate, activity, and
-	environmental data APIs, then publish only data with a defined CoT mapping.
+6. **Garmin sensors** - implemented as opt-in heart rate, respiration rate,
+	and daily step telemetry in a documented Garmin-specific CoT extension.
+	Environmental and other device-specific sensors remain unsupported until a
+	compatible watch and stable CoT mapping are validated.
 
 ## Development
 
