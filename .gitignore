@@ -1,0 +1,8 @@
+# Garmin build outputs
+/bin/
+/gen/
+/mir/
+/internal-mir/
+
+# Private Garmin signing key
+/developer_key.der

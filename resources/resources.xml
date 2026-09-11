@@ -1,0 +1,22 @@
+<resources>
+    <string id="AppName">WearTAK-Garmin</string>
+    <string id="version">1.0</string>
+
+    <string id="MenuTitleMain">WearTAK</string>
+    <string id="MenuItemMap">Map</string>
+    <string id="MenuItemTakServer">TAK Server</string>
+
+    <string id="MenuTitleTakServer">TAK Server</string>
+    <string id="LabelServerUrl">Server URL</string>
+    <string id="LabelServerName">Server Name</string>
+    <string id="LabelUsername">Username</string>
+    <string id="LabelPassword">Password</string>
+    <string id="LabelPort">Port</string>
+    <string id="LabelConnect">Connect</string>
+    <string id="LabelDisconnect">Disconnect</string>
+    <string id="LabelNotSet">Not set</string>
+    <string id="StatusIdle">Not connected</string>
+    <string id="StatusConnecting">Connecting...</string>
+    <string id="StatusConnected">Connected</string>
+    <string id="StatusFailed">Failed</string>
+</resources>

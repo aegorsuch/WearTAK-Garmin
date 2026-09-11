@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+    <iq:application entry="StandaloneApp" id="95a20b8f-a30c-47a7-9fc9-1ada1f452ba2" launcherIcon="@Drawables.LauncherIcon" minSdkVersion="3.3.0" name="@Strings.AppName" type="watch-app">
+        <iq:products>
+            <iq:product id="fenix7x"/>
+        </iq:products>
+        <iq:permissions>
+            <iq:uses-permission id="PersistedContent"/>
+            <iq:uses-permission id="Positioning"/>
+            <iq:uses-permission id="Communications"/>
+        </iq:permissions>
+        <iq:languages>
+            <iq:language>eng</iq:language>
+        </iq:languages>
+        <iq:barrels/>
+    </iq:application>
+</iq:manifest>

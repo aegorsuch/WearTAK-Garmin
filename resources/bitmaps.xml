@@ -1,0 +1,8 @@
+<resources>
+    <bitmap id="LauncherIcon" filename="images/launcher.png" />
+    <bitmap id="TargetIcon" filename="images/target.png" />
+    <bitmap id="FriendlyIcon" filename="images/friendly.png" />
+    <bitmap id="UnknownIcon" filename="images/unknown.png" />
+    <bitmap id="HostileIcon" filename="images/hostile.png" />
+    <bitmap id="ObstacleIcon" filename="images/obstacle.png" />
+</resources>
