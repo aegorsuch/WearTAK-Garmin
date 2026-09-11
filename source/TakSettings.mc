@@ -13,6 +13,8 @@ module TakSettings {
     const KEY_MOVING_INTERVAL = "tak.movingInterval";
     const KEY_STATIONARY_INTERVAL = "tak.stationaryInterval";
     const KEY_STATIC_INTERVAL = "tak.staticInterval";
+    const KEY_INCOMING_COT_PATH = "tak.incomingCotPath";
+    const KEY_INCOMING_COT_INTERVAL = "tak.incomingCotInterval";
 
     function getServerUrl() as String {
         var value = Application.Storage.getValue(KEY_SERVER_URL);
@@ -97,6 +99,22 @@ module TakSettings {
 
     function setStaticInterval(value as String) as Void {
         Application.Storage.setValue(KEY_STATIC_INTERVAL, value);
+    }
+
+    function getIncomingCotPath() as String {
+        return getInterval(KEY_INCOMING_COT_PATH, "");
+    }
+
+    function setIncomingCotPath(value as String) as Void {
+        Application.Storage.setValue(KEY_INCOMING_COT_PATH, value);
+    }
+
+    function getIncomingCotInterval() as String {
+        return getInterval(KEY_INCOMING_COT_INTERVAL, "60");
+    }
+
+    function setIncomingCotInterval(value as String) as Void {
+        Application.Storage.setValue(KEY_INCOMING_COT_INTERVAL, value);
     }
 
     function getInterval(key as String, defaultValue as String) as String {

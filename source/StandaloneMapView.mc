@@ -1,4 +1,5 @@
 import Toybox.Graphics;
+import Toybox.Lang;
 import Toybox.PersistedContent;
 import Toybox.Position;
 import Toybox.System;
@@ -18,6 +19,8 @@ class StandaloneMapView extends WatchUi.MapTrackView {
     var mapBottomRight;
     var markers = {};
     var pointLocations = {};
+    var incomingIds = [];
+    var takClient as TakClient? = null;
     var controlSize = 40;
     var controlGap = 6;
     var controlMargin = 8;
@@ -45,6 +48,30 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         selfMarker.setIcon(selfIcon, selfIcon.getWidth() / 2, selfIcon.getHeight() / 2);
         selfMarker.setLabel("SELF");
         markers.put("self", selfMarker);
+        setMapMarker(markers.values());
+        WatchUi.requestUpdate();
+    }
+
+    function setTakClient(client as TakClient) as Void {
+        takClient = client;
+    }
+
+    function updateIncomingCot(uid as String, latitude, longitude, cotType as String) as Void {
+        if (takClient != null && uid.equals("garmin-" + takClient.callsign())) {
+            return;
+        }
+        var location = new Position.Location({:latitude => latitude, :longitude => longitude, :format => :degrees});
+        var marker = new StandaloneMapMarker(location);
+        var icon = cotType.find("a-h-") != null ? iconForType(:hostile) : cotType.find("a-f-") != null ? iconForType(:friendly) : iconForType(:unknown);
+        marker.setIcon(icon, icon.getWidth() / 2, icon.getHeight() / 2);
+        marker.setLabel(uid);
+        if (!markers.hasKey(uid)) {
+            incomingIds.add(uid);
+            if (incomingIds.size() > 50) {
+                markers.remove(incomingIds.remove(0));
+            }
+        }
+        markers.put(uid, marker);
         setMapMarker(markers.values());
         WatchUi.requestUpdate();
     }
@@ -141,6 +168,9 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         pointLocations.put(id, location);
         setMapMarker(markers.values());
         PersistedContent.saveWaypoint(location, {:name => label});
+        if (takClient != null) {
+            takClient.sendMarker(id, location, type, label);
+        }
         WatchUi.requestUpdate();
     }
 

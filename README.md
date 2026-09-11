@@ -19,6 +19,14 @@ viewing position and saving manually placed points.
 - Displays the watch's current position on a pan-and-zoom map.
 - Drops and saves 2525D-style friendly, hostile, unknown, and obstacle points
   as Garmin waypoints.
+- Publishes map points as typed CoT marker events after their type is selected.
+- Provides a confirmed SOS action that sends an emergency CoT event and uses
+	the configured alert reporting interval until the SOS control is selected
+	again to clear alerting.
+- Optionally polls a configured XML CoT feed and displays up to 50 received
+	entities on the map.
+- Retries failed TAK requests after 5, 15, and 60 seconds before reporting a
+	connection failure.
 - Stores TAK endpoint settings locally on the watch.
 
 ## Using the app
@@ -32,6 +40,11 @@ viewing position and saving manually placed points.
 4. Select **Connect**. The app validates the server and starts PLI reporting.
 5. Open **Map** to browse the map, center on the current position, and add
 	local points.
+
+Set **Incoming CoT path** only when the TAK deployment provides an HTTPS path
+that returns CoT XML events. It is blank by default because no single incoming
+REST endpoint is portable across TAK Server deployments. **Send SOS** opens a
+separate confirmation before transmitting; selecting it again clears alerting.
 
 The current CoT publisher posts XML events to
 `https://<server>:<port>/Marti/api/cot`. The target TAK Server must expose this
@@ -53,15 +66,14 @@ field use.
 
 1. **CoT PLI publishing** - implemented: send periodic `a-f-G-U-C` position
 	events to the TAK Server REST API with dynamic or static scheduling.
-2. **CoT marker publishing** - publish points created on the map as CoT marker
-	events after the operator assigns their type.
-3. **Incoming CoT awareness** - retrieve supported REST CoT feeds and render
-	received entities with type-specific map icons.
-4. **SOS/manual alert** - add a deliberate, confirmed emergency action that
-	transmits an emergency CoT event and shows delivery state.
-5. **Operational reliability** - make reporting interval configurable, surface
-	request failures, and define reconnect behavior within Connect IQ lifecycle
-	limits.
+2. **CoT marker publishing** - implemented: typed map points publish CoT
+	marker events after type assignment.
+3. **Incoming CoT awareness** - implemented for configurable XML REST feeds;
+	validate the configured endpoint and payload against the target server.
+4. **SOS/manual alert** - implemented: confirmed emergency event plus dynamic
+	alert-rate reporting, subject to target TAK Server policy.
+5. **Operational reliability** - implemented: bounded reconnect attempts and
+	request-status feedback within Connect IQ lifecycle limits.
 6. **Garmin sensors** - evaluate supported heart-rate, activity, and
 	environmental data APIs, then publish only data with a defined CoT mapping.
 

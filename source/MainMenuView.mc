@@ -21,6 +21,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         if (id == :map) {
             var mapView = app.getMapView();
+            mapView.setTakClient(app.getTakClient());
             WatchUi.pushView(mapView, new StandaloneMapDelegate(mapView), WatchUi.SLIDE_LEFT);
         } else if (id == :takServer) {
             var takMenu = buildTakServerMenu();

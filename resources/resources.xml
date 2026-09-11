@@ -19,11 +19,18 @@
     <string id="LabelMovingInterval">Moving seconds</string>
     <string id="LabelStationaryInterval">Stationary seconds</string>
     <string id="LabelStaticInterval">Static seconds</string>
+    <string id="LabelIncomingCotPath">Incoming CoT path</string>
+    <string id="LabelIncomingCotInterval">Incoming seconds</string>
+    <string id="LabelSosControl">SOS / Clear</string>
+    <string id="LabelSendSos">Send SOS</string>
+    <string id="LabelCancel">Cancel</string>
+    <string id="ConfirmSosTitle">Send SOS?</string>
     <string id="LabelConnect">Connect</string>
     <string id="LabelDisconnect">Disconnect</string>
     <string id="LabelNotSet">Not set</string>
     <string id="StatusIdle">Not connected</string>
     <string id="StatusConnecting">Connecting...</string>
+    <string id="StatusRetrying">Retrying</string>
     <string id="StatusConnected">Connected</string>
     <string id="StatusFailed">Failed</string>
 </resources>

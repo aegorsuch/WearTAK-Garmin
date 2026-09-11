@@ -14,6 +14,9 @@ function buildTakServerMenu() as WatchUi.Menu2 {
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelMovingInterval), TakSettings.getMovingInterval(), :movingInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStationaryInterval), TakSettings.getStationaryInterval(), :stationaryInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStaticInterval), TakSettings.getStaticInterval(), :staticInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotPath), displayValue(TakSettings.getIncomingCotPath()), :incomingCotPath, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelIncomingCotInterval), TakSettings.getIncomingCotInterval(), :incomingCotInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelSosControl), null, :sos, null));
     menu.addItem(new WatchUi.MenuItem(connectActionLabel(), null, :toggleConnect, null));
     return menu;
 }
@@ -76,6 +79,12 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             editField(:stationaryInterval, TakSettings.getStationaryInterval());
         } else if (id == :staticInterval) {
             editField(:staticInterval, TakSettings.getStaticInterval());
+        } else if (id == :incomingCotPath) {
+            editField(:incomingCotPath, TakSettings.getIncomingCotPath());
+        } else if (id == :incomingCotInterval) {
+            editField(:incomingCotInterval, TakSettings.getIncomingCotInterval());
+        } else if (id == :sos) {
+            showSosConfirmation();
         } else if (id == :toggleConnect) {
             toggleConnect();
         }
@@ -92,6 +101,21 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         TakSettings.setTrackingMode(mode);
         refreshItem(:trackingMode);
         app.getTakClient().refreshReportingSchedule();
+    }
+
+    function showSosConfirmation() as Void {
+        if (app.getTakClient().isAlerting()) {
+            app.getTakClient().setAlerting(false);
+            return;
+        }
+        var confirmation = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.ConfirmSosTitle)});
+        confirmation.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelSendSos), null, :send, null));
+        confirmation.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelCancel), null, :cancel, null));
+        WatchUi.pushView(confirmation, new SosConfirmationDelegate(self), WatchUi.SLIDE_UP);
+    }
+
+    function sendSos() as Void {
+        app.getTakClient().sendSosEvent();
     }
 
     function editField(fieldId as Symbol, currentValue as String) as Void {
@@ -121,6 +145,10 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             TakSettings.setStationaryInterval(text);
         } else if (fieldId == :staticInterval) {
             TakSettings.setStaticInterval(text);
+        } else if (fieldId == :incomingCotPath) {
+            TakSettings.setIncomingCotPath(text);
+        } else if (fieldId == :incomingCotInterval) {
+            TakSettings.setIncomingCotInterval(text);
         }
         refreshItem(fieldId);
         app.getTakClient().refreshReportingSchedule();
@@ -151,6 +179,10 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             item.setSubLabel(TakSettings.getStationaryInterval());
         } else if (fieldId == :staticInterval) {
             item.setSubLabel(TakSettings.getStaticInterval());
+        } else if (fieldId == :incomingCotPath) {
+            item.setSubLabel(displayValue(TakSettings.getIncomingCotPath()));
+        } else if (fieldId == :incomingCotInterval) {
+            item.setSubLabel(TakSettings.getIncomingCotInterval());
         }
         WatchUi.requestUpdate();
     }
@@ -219,6 +251,26 @@ class TrackingModeMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         parent.onTrackingModeSelected(item.getId());
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+}
+
+class SosConfirmationDelegate extends WatchUi.Menu2InputDelegate {
+    var parent as TakServerMenuDelegate;
+
+    function initialize(parentDelegate as TakServerMenuDelegate) {
+        Menu2InputDelegate.initialize();
+        parent = parentDelegate;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        if (item.getId() == :send) {
+            parent.sendSos();
+        }
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 

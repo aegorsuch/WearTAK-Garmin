@@ -19,10 +19,14 @@ class TakClient {
     var lastResponseCode as Number?  = null;
     var lastPosition as Position.Info?  = null;
     var reportTimer as Timer.Timer?  = null;
+    var incomingTimer as Timer.Timer? = null;
+    var reconnectTimer as Timer.Timer? = null;
     var scheduledInterval as Number? = null;
+    var reconnectAttempts as Number = 0;
     var moving as Boolean = false;
     var alerting as Boolean = false;
     var statusCallback as Method?  = null;
+    var incomingCotCallback as Method? = null;
 
     function initialize() {
     }
@@ -44,6 +48,10 @@ class TakClient {
         if (isConnected() && TakSettings.getTrackingMode() == :dynamic) {
             scheduleReporting(false);
         }
+    }
+
+    function isAlerting() as Boolean {
+        return alerting;
     }
 
     function refreshReportingSchedule() as Void {
@@ -82,18 +90,24 @@ class TakClient {
         lastResponseCode = responseCode;
         if (responseCode == 200) {
             status = :connected;
+            reconnectAttempts = 0;
             startReporting();
+            startIncomingPolling();
         } else {
-            status = :failed;
-            stopReporting();
+            handleRequestFailure();
         }
         notifyStatusChanged();
     }
 
     function disconnect() as Void {
         stopReporting();
+        stopIncomingPolling();
+        stopReconnectTimer();
+        alerting = false;
+        reconnectAttempts = 0;
         status = :idle;
         lastResponseCode = null;
+        notifyStatusChanged();
     }
 
     function startReporting() as Void {
@@ -109,6 +123,24 @@ class TakClient {
             reportTimer.stop();
         }
         scheduledInterval = null;
+    }
+
+    function startIncomingPolling() as Void {
+        if (TakSettings.getIncomingCotPath().equals("")) {
+            return;
+        }
+        if (incomingTimer == null) {
+            incomingTimer = new Timer.Timer();
+        }
+        incomingTimer.stop();
+        incomingTimer.start(method(:fetchIncomingCot), configuredInterval(TakSettings.getIncomingCotInterval(), 60) * 1000, true);
+        fetchIncomingCot();
+    }
+
+    function stopIncomingPolling() as Void {
+        if (incomingTimer != null) {
+            incomingTimer.stop();
+        }
     }
 
     function scheduleReporting(force as Boolean) as Void {
@@ -163,6 +195,45 @@ class TakClient {
         Communications.makeWebRequest(url, payload, options, method(:onLocationResponse));
     }
 
+    function sendMarker(id as String, location as Position.Location, type as Symbol, label as String) as Void {
+        if (!isConnected()) {
+            return;
+        }
+        var degrees = location.toDegrees();
+        var payload = buildMarkerEvent(id, degrees[0], degrees[1], type, label);
+        sendCotEvent(payload, method(:onMarkerResponse));
+    }
+
+    function sendSosEvent() as Void {
+        if (!isConnected() || lastPosition == null || lastPosition.position == null) {
+            return;
+        }
+        setAlerting(true);
+        var degrees = lastPosition.position.toDegrees();
+        sendCotEvent(buildSosEvent(degrees[0], degrees[1], lastPosition.altitude), method(:onSosResponse));
+    }
+
+    function fetchIncomingCot() as Void {
+        if (!isConnected() || TakSettings.getIncomingCotPath().equals("")) {
+            return;
+        }
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_GET,
+            :headers => {"Authorization" => authHeader(), "Accept" => "application/xml"},
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_TEXT_PLAIN
+        };
+        Communications.makeWebRequest(baseUrl() + TakSettings.getIncomingCotPath(), null, options, method(:onIncomingCotResponse));
+    }
+
+    function sendCotEvent(payload as String, callback as Method) as Void {
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :headers => {"Authorization" => authHeader(), "Content-Type" => "application/xml"},
+            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_TEXT_PLAIN
+        };
+        Communications.makeWebRequest(baseUrl() + "/Marti/api/cot", payload, options, callback);
+    }
+
     function buildPliEvent(latitude, longitude, altitude) as String {
         var now = cotTimestamp(Time.now());
         var stale = cotTimestamp(Time.now().add(new Time.Duration(60)));
@@ -173,6 +244,26 @@ class TakClient {
         return "<event version=\"2.0\" uid=\"" + uid + "\" type=\"a-f-G-U-C\" time=\"" + now + "\" start=\"" + now + "\" stale=\"" + stale + "\" how=\"m-g\">"
             + "<point lat=\"" + latitude.toString() + "\" lon=\"" + longitude.toString() + "\" hae=\"" + hae + "\" ce=\"9999999.0\" le=\"9999999.0\"/>"
             + "<detail><contact callsign=\"" + safeCallsign + "\"/><uid Droid=\"" + safeCallsign + "\"/></detail></event>";
+    }
+
+    function buildMarkerEvent(id as String, latitude, longitude, type as Symbol, label as String) as String {
+        var now = cotTimestamp(Time.now());
+        var stale = cotTimestamp(Time.now().add(new Time.Duration(3600)));
+        var markerType = type == :hostile ? "a-h-G-E-S" : type == :friendly ? "a-f-G-E-S" : type == :obstacle ? "a-o-G-E-S" : "a-u-G-E-S";
+        var name = xmlEscape(label);
+        return "<event version=\"2.0\" uid=\"" + xmlEscape("garmin-" + callsign() + "-marker-" + id) + "\" type=\"" + markerType + "\" time=\"" + now + "\" start=\"" + now + "\" stale=\"" + stale + "\" how=\"m-g\">"
+            + "<point lat=\"" + latitude.toString() + "\" lon=\"" + longitude.toString() + "\" hae=\"9999999.0\" ce=\"9999999.0\" le=\"9999999.0\"/>"
+            + "<detail><contact callsign=\"" + name + "\"/></detail></event>";
+    }
+
+    function buildSosEvent(latitude, longitude, altitude) as String {
+        var now = cotTimestamp(Time.now());
+        var stale = cotTimestamp(Time.now().add(new Time.Duration(3600)));
+        var hae = altitude == null ? "9999999.0" : altitude.toString();
+        var safeCallsign = xmlEscape(callsign());
+        return "<event version=\"2.0\" uid=\"" + xmlEscape("garmin-" + callsign() + "-sos") + "\" type=\"b-a-o-tbl\" time=\"" + now + "\" start=\"" + now + "\" stale=\"" + stale + "\" how=\"m-g\">"
+            + "<point lat=\"" + latitude.toString() + "\" lon=\"" + longitude.toString() + "\" hae=\"" + hae + "\" ce=\"9999999.0\" le=\"9999999.0\"/>"
+            + "<detail><contact callsign=\"" + safeCallsign + "\"/><emergency type=\"911\" callsign=\"" + safeCallsign + "\"/></detail></event>";
     }
 
     function cotTimestamp(moment as Time.Moment) as String {
@@ -205,10 +296,107 @@ class TakClient {
     function onLocationResponse(responseCode as Number, data as String?) as Void {
         lastResponseCode = responseCode;
         if (responseCode != 200) {
-            status = :failed;
-            stopReporting();
+            handleRequestFailure();
         }
         notifyStatusChanged();
+    }
+
+    function onMarkerResponse(responseCode as Number, data as String?) as Void {
+        lastResponseCode = responseCode;
+        if (responseCode != 200) {
+            handleRequestFailure();
+        }
+        notifyStatusChanged();
+    }
+
+    function onSosResponse(responseCode as Number, data as String?) as Void {
+        lastResponseCode = responseCode;
+        if (responseCode != 200) {
+            handleRequestFailure();
+        }
+        notifyStatusChanged();
+    }
+
+    function onIncomingCotResponse(responseCode as Number, data as String?) as Void {
+        lastResponseCode = responseCode;
+        if (responseCode == 200 && data != null) {
+            parseIncomingCot(data);
+        } else if (responseCode != 200) {
+            handleRequestFailure();
+        }
+        notifyStatusChanged();
+    }
+
+    function parseIncomingCot(data as String) as Void {
+        var remaining = data;
+        var count = 0;
+        while (count < 50) {
+            var start = remaining.find("<event");
+            if (start == null) {
+                return;
+            }
+            remaining = remaining.substring(start, remaining.length());
+            var end = remaining.find("</event>");
+            if (end == null) {
+                return;
+            }
+            var event = remaining.substring(0, end + 8);
+            remaining = remaining.substring(end + 8, remaining.length());
+            var pointStart = event.find("<point");
+            if (pointStart != null) {
+                var point = event.substring(pointStart, event.length());
+                var latitude = cotAttribute(point, "lat");
+                var longitude = cotAttribute(point, "lon");
+                var uid = cotAttribute(event, "uid");
+                var type = cotAttribute(event, "type");
+                if (latitude != null && longitude != null && uid != null && type != null && incomingCotCallback != null) {
+                    incomingCotCallback.invoke(uid, latitude.toNumber(), longitude.toNumber(), type);
+                }
+            }
+            count += 1;
+        }
+    }
+
+    function cotAttribute(xml as String, name as String) as String? {
+        var prefix = name + "=\"";
+        var start = xml.find(prefix);
+        if (start == null) {
+            return null;
+        }
+        var value = xml.substring(start + prefix.length(), xml.length());
+        var end = value.find("\"");
+        return end == null ? null : value.substring(0, end);
+    }
+
+    function handleRequestFailure() as Void {
+        stopReporting();
+        stopIncomingPolling();
+        scheduleReconnect();
+    }
+
+    function scheduleReconnect() as Void {
+        if (reconnectAttempts >= 3) {
+            status = :failed;
+            return;
+        }
+        if (reconnectTimer == null) {
+            reconnectTimer = new Timer.Timer();
+        }
+        var delay = reconnectAttempts == 0 ? 5000 : reconnectAttempts == 1 ? 15000 : 60000;
+        reconnectAttempts += 1;
+        status = :retrying;
+        reconnectTimer.stop();
+        reconnectTimer.start(method(:retryConnection), delay, false);
+    }
+
+    function retryConnection() as Void {
+        connect();
+    }
+
+    function stopReconnectTimer() as Void {
+        if (reconnectTimer != null) {
+            reconnectTimer.stop();
+        }
     }
 
     function notifyStatusChanged() as Void {
@@ -234,6 +422,8 @@ class TakClient {
     function statusText() as String {
         if (status == :connecting) {
             return WatchUi.loadResource(Rez.Strings.StatusConnecting);
+        } else if (status == :retrying) {
+            return WatchUi.loadResource(Rez.Strings.StatusRetrying) + " (" + reconnectAttempts.toString() + "/3)";
         } else if (status == :connected) {
             return WatchUi.loadResource(Rez.Strings.StatusConnected);
         } else if (status == :failed) {

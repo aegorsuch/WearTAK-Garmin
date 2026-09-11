@@ -9,6 +9,7 @@ class StandaloneApp extends Application.AppBase {
     function initialize() {
         Application.AppBase.initialize();
         takClient = new TakClient();
+        takClient.incomingCotCallback = method(:onIncomingCot);
         Position.enableLocationEvents(Position.LOCATION_CONTINUOUS, method(:onPosition));
     }
 
@@ -22,9 +23,14 @@ class StandaloneApp extends Application.AppBase {
         }
     }
 
+    function onIncomingCot(uid, latitude, longitude, type) as Void {
+        getMapView().updateIncomingCot(uid, latitude, longitude, type);
+    }
+
     function getMapView() as StandaloneMapView {
         if (view == null) {
             view = new StandaloneMapView();
+            view.setTakClient(takClient);
         }
         return view;
     }
