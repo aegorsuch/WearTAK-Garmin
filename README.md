@@ -4,13 +4,13 @@ WearTAK-Garmin is a standalone Garmin Connect IQ watch application for basic
 Team Awareness Kit (TAK) operational awareness. It is designed for Garmin
 watches with maps and GPS, currently targeting the fenix 7X.
 
-The app connects to a TAK Server REST endpoint over HTTPS, publishes the
-watch's position as Cursor-on-Target (CoT), and provides an on-watch map for
-viewing position and saving manually placed points.
+The app connects to a dedicated HTTPS TAK bridge, publishes the watch's
+position as Cursor-on-Target (CoT), and provides an on-watch map for viewing
+position and saving manually placed points.
 
 ## Current capabilities
 
-- Connects to a configured TAK Server HTTPS endpoint using HTTP Basic auth.
+- Connects to a configured HTTPS TAK bridge using HTTP Basic auth.
 - Defaults to dynamic GPS reporting: every 10 seconds while alerting, every
 	60 seconds while moving, and every hour while stationary. Static tracking is
 	also available and defaults to every 60 seconds.
@@ -55,17 +55,20 @@ the CoT `detail` element. This is a Garmin-specific extension, not a standard
 TAK health schema; confirm that the receiving system accepts and handles it
 before using it operationally.
 
-The current CoT publisher posts XML events to
-`https://<server>:<port>/Marti/api/cot`. The target TAK Server must expose this
-REST endpoint and permit the configured HTTP Basic credentials.
+The current CoT publisher posts a JSON envelope of the form
+`{"cot":"<event ...>"}` to `https://<server>:<port>/Marti/api/cot`. The HTTPS
+bridge must authenticate the watch, validate and unwrap the CoT XML, and relay
+it to TAK using the bridge's mTLS certificate. A standard TAK Server mTLS data
+port does not implement this endpoint.
 
 ## Platform limits
 
 Connect IQ is not Wear OS. This application cannot use Android foreground
 services, Compose, Tiles, MDM managed configuration, Android plugins, Samsung
 Health APIs, or APK tooling. It also cannot connect to the native TAK mutual-
-TLS streaming port because Connect IQ provides HTTPS web requests rather than
-arbitrary TLS sockets or client-certificate installation.
+TLS streaming port or submit raw XML request bodies because Connect IQ provides
+dictionary-based HTTPS web requests rather than arbitrary TLS sockets, client-
+certificate installation, or raw HTTP body control.
 
 Treat location, server credentials, and saved waypoints as sensitive data.
 Use a trusted HTTPS TAK Server and verify its REST authentication policy before

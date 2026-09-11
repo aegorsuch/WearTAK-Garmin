@@ -181,19 +181,7 @@ class TakClient {
         }
 
         var degrees = lastPosition.position.toDegrees();
-        var payload = buildPliEvent(degrees[0], degrees[1], lastPosition.altitude);
-
-        var url = baseUrl() + "/Marti/api/cot";
-        var options = {
-            :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Authorization" => authHeader(),
-                "Content-Type" => "application/xml"
-            },
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_TEXT_PLAIN
-        };
-
-        Communications.makeWebRequest(url, payload, options, method(:onLocationResponse));
+        sendCotEvent(buildPliEvent(degrees[0], degrees[1], lastPosition.altitude), method(:onLocationResponse));
     }
 
     function sendMarker(id as String, location as Position.Location, type as Symbol, label as String) as Void {
@@ -229,10 +217,10 @@ class TakClient {
     function sendCotEvent(payload as String, callback as Method) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {"Authorization" => authHeader(), "Content-Type" => "application/xml"},
+            :headers => {"Authorization" => authHeader(), "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON},
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_TEXT_PLAIN
         };
-        Communications.makeWebRequest(baseUrl() + "/Marti/api/cot", payload, options, callback);
+        Communications.makeWebRequest(baseUrl() + "/Marti/api/cot", {:cot => payload}, options, callback);
     }
 
     function buildPliEvent(latitude, longitude, altitude) as String {

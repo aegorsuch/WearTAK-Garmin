@@ -107,7 +107,7 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         WatchUi.pushView(trackingMenu, new TrackingModeMenuDelegate(self), WatchUi.SLIDE_UP);
     }
 
-    function onTrackingModeSelected(mode as Symbol) as Void {
+    function onTrackingModeSelected(mode) as Void {
         TakSettings.setTrackingMode(mode);
         refreshItem(:trackingMode);
         app.getTakClient().refreshReportingSchedule();
