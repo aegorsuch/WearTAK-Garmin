@@ -9,6 +9,11 @@ function buildTakServerMenu() as WatchUi.Menu2 {
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelUsername), displayValue(TakSettings.getUsername()), :username, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelPassword), maskedPassword(), :password, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelPort), displayValue(TakSettings.getPort()), :port, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelTrackingMode), trackingModeLabel(), :trackingMode, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelAlertInterval), TakSettings.getAlertInterval(), :alertInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelMovingInterval), TakSettings.getMovingInterval(), :movingInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStationaryInterval), TakSettings.getStationaryInterval(), :stationaryInterval, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelStaticInterval), TakSettings.getStaticInterval(), :staticInterval, null));
     menu.addItem(new WatchUi.MenuItem(connectActionLabel(), null, :toggleConnect, null));
     return menu;
 }
@@ -33,6 +38,12 @@ function connectActionLabel() as String {
     return WatchUi.loadResource(Rez.Strings.LabelConnect);
 }
 
+function trackingModeLabel() as String {
+    return TakSettings.getTrackingMode() == :static
+        ? WatchUi.loadResource(Rez.Strings.TrackingModeStatic)
+        : WatchUi.loadResource(Rez.Strings.TrackingModeDynamic);
+}
+
 class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
     var app as StandaloneApp;
     var menu as WatchUi.Menu2;
@@ -55,9 +66,32 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             editField(:password, TakSettings.getPassword());
         } else if (id == :port) {
             editField(:port, TakSettings.getPort());
+        } else if (id == :trackingMode) {
+            showTrackingModeMenu();
+        } else if (id == :alertInterval) {
+            editField(:alertInterval, TakSettings.getAlertInterval());
+        } else if (id == :movingInterval) {
+            editField(:movingInterval, TakSettings.getMovingInterval());
+        } else if (id == :stationaryInterval) {
+            editField(:stationaryInterval, TakSettings.getStationaryInterval());
+        } else if (id == :staticInterval) {
+            editField(:staticInterval, TakSettings.getStaticInterval());
         } else if (id == :toggleConnect) {
             toggleConnect();
         }
+    }
+
+    function showTrackingModeMenu() as Void {
+        var trackingMenu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.LabelTrackingMode)});
+        trackingMenu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.TrackingModeDynamic), null, :dynamic, null));
+        trackingMenu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.TrackingModeStatic), null, :static, null));
+        WatchUi.pushView(trackingMenu, new TrackingModeMenuDelegate(self), WatchUi.SLIDE_UP);
+    }
+
+    function onTrackingModeSelected(mode as Symbol) as Void {
+        TakSettings.setTrackingMode(mode);
+        refreshItem(:trackingMode);
+        app.getTakClient().refreshReportingSchedule();
     }
 
     function editField(fieldId as Symbol, currentValue as String) as Void {
@@ -79,8 +113,17 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             TakSettings.setPassword(text);
         } else if (fieldId == :port) {
             TakSettings.setPort(text);
+        } else if (fieldId == :alertInterval) {
+            TakSettings.setAlertInterval(text);
+        } else if (fieldId == :movingInterval) {
+            TakSettings.setMovingInterval(text);
+        } else if (fieldId == :stationaryInterval) {
+            TakSettings.setStationaryInterval(text);
+        } else if (fieldId == :staticInterval) {
+            TakSettings.setStaticInterval(text);
         }
         refreshItem(fieldId);
+        app.getTakClient().refreshReportingSchedule();
     }
 
     function refreshItem(fieldId as Symbol) as Void {
@@ -98,6 +141,16 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
             item.setSubLabel(displayValue(TakSettings.getUsername()));
         } else if (fieldId == :port) {
             item.setSubLabel(displayValue(TakSettings.getPort()));
+        } else if (fieldId == :trackingMode) {
+            item.setSubLabel(trackingModeLabel());
+        } else if (fieldId == :alertInterval) {
+            item.setSubLabel(TakSettings.getAlertInterval());
+        } else if (fieldId == :movingInterval) {
+            item.setSubLabel(TakSettings.getMovingInterval());
+        } else if (fieldId == :stationaryInterval) {
+            item.setSubLabel(TakSettings.getStationaryInterval());
+        } else if (fieldId == :staticInterval) {
+            item.setSubLabel(TakSettings.getStaticInterval());
         }
         WatchUi.requestUpdate();
     }
@@ -153,5 +206,23 @@ class TakFieldTextPickerDelegate extends WatchUi.TextPickerDelegate {
 
     function onCancel() as Boolean {
         return true;
+    }
+}
+
+class TrackingModeMenuDelegate extends WatchUi.Menu2InputDelegate {
+    var parent as TakServerMenuDelegate;
+
+    function initialize(parentDelegate as TakServerMenuDelegate) {
+        Menu2InputDelegate.initialize();
+        parent = parentDelegate;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        parent.onTrackingModeSelected(item.getId());
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 }

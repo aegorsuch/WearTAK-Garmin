@@ -12,6 +12,13 @@
     <string id="LabelUsername">Username</string>
     <string id="LabelPassword">Password</string>
     <string id="LabelPort">Port</string>
+    <string id="LabelTrackingMode">Tracking Mode</string>
+    <string id="TrackingModeDynamic">Dynamic</string>
+    <string id="TrackingModeStatic">Static</string>
+    <string id="LabelAlertInterval">Alert seconds</string>
+    <string id="LabelMovingInterval">Moving seconds</string>
+    <string id="LabelStationaryInterval">Stationary seconds</string>
+    <string id="LabelStaticInterval">Static seconds</string>
     <string id="LabelConnect">Connect</string>
     <string id="LabelDisconnect">Disconnect</string>
     <string id="LabelNotSet">Not set</string>

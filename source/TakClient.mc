@@ -19,6 +19,9 @@ class TakClient {
     var lastResponseCode as Number?  = null;
     var lastPosition as Position.Info?  = null;
     var reportTimer as Timer.Timer?  = null;
+    var scheduledInterval as Number? = null;
+    var moving as Boolean = false;
+    var alerting as Boolean = false;
     var statusCallback as Method?  = null;
 
     function initialize() {
@@ -26,6 +29,27 @@ class TakClient {
 
     function updatePosition(info as Position.Info) as Void {
         lastPosition = info;
+        var wasMoving = moving;
+        moving = info.speed != null && info.speed >= 0.5;
+        if (wasMoving != moving && isConnected() && TakSettings.getTrackingMode() == :dynamic) {
+            scheduleReporting(false);
+        }
+    }
+
+    function setAlerting(value as Boolean) as Void {
+        if (alerting == value) {
+            return;
+        }
+        alerting = value;
+        if (isConnected() && TakSettings.getTrackingMode() == :dynamic) {
+            scheduleReporting(false);
+        }
+    }
+
+    function refreshReportingSchedule() as Void {
+        if (isConnected()) {
+            scheduleReporting(false);
+        }
     }
 
     function isConnected() as Boolean {
@@ -76,7 +100,7 @@ class TakClient {
         if (reportTimer == null) {
             reportTimer = new Timer.Timer();
         }
-        reportTimer.start(method(:sendLocation), 15000, true);
+        scheduleReporting(true);
         sendLocation();
     }
 
@@ -84,6 +108,38 @@ class TakClient {
         if (reportTimer != null) {
             reportTimer.stop();
         }
+        scheduledInterval = null;
+    }
+
+    function scheduleReporting(force as Boolean) as Void {
+        var interval = reportingIntervalSeconds() * 1000;
+        if (!force && scheduledInterval == interval) {
+            return;
+        }
+        if (reportTimer == null) {
+            reportTimer = new Timer.Timer();
+        }
+        reportTimer.stop();
+        reportTimer.start(method(:sendLocation), interval, true);
+        scheduledInterval = interval;
+    }
+
+    function reportingIntervalSeconds() as Number {
+        if (TakSettings.getTrackingMode() == :static) {
+            return configuredInterval(TakSettings.getStaticInterval(), 60);
+        }
+        if (alerting) {
+            return configuredInterval(TakSettings.getAlertInterval(), 10);
+        }
+        if (moving) {
+            return configuredInterval(TakSettings.getMovingInterval(), 60);
+        }
+        return configuredInterval(TakSettings.getStationaryInterval(), 3600);
+    }
+
+    function configuredInterval(value as String, defaultSeconds as Number) as Number {
+        var seconds = value.toNumber();
+        return seconds == null || seconds <= 0 ? defaultSeconds : seconds;
     }
 
     function sendLocation() as Void {

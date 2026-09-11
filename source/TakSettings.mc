@@ -8,6 +8,11 @@ module TakSettings {
     const KEY_USERNAME = "tak.username";
     const KEY_PASSWORD = "tak.password";
     const KEY_PORT = "tak.port";
+    const KEY_TRACKING_MODE = "tak.trackingMode";
+    const KEY_ALERT_INTERVAL = "tak.alertInterval";
+    const KEY_MOVING_INTERVAL = "tak.movingInterval";
+    const KEY_STATIONARY_INTERVAL = "tak.stationaryInterval";
+    const KEY_STATIC_INTERVAL = "tak.staticInterval";
 
     function getServerUrl() as String {
         var value = Application.Storage.getValue(KEY_SERVER_URL);
@@ -52,6 +57,51 @@ module TakSettings {
 
     function setPort(value as String) as Void {
         Application.Storage.setValue(KEY_PORT, value);
+    }
+
+    function getTrackingMode() as Symbol {
+        return Application.Storage.getValue(KEY_TRACKING_MODE) == "static" ? :static : :dynamic;
+    }
+
+    function setTrackingMode(mode as Symbol) as Void {
+        Application.Storage.setValue(KEY_TRACKING_MODE, mode == :static ? "static" : "dynamic");
+    }
+
+    function getAlertInterval() as String {
+        return getInterval(KEY_ALERT_INTERVAL, "10");
+    }
+
+    function setAlertInterval(value as String) as Void {
+        Application.Storage.setValue(KEY_ALERT_INTERVAL, value);
+    }
+
+    function getMovingInterval() as String {
+        return getInterval(KEY_MOVING_INTERVAL, "60");
+    }
+
+    function setMovingInterval(value as String) as Void {
+        Application.Storage.setValue(KEY_MOVING_INTERVAL, value);
+    }
+
+    function getStationaryInterval() as String {
+        return getInterval(KEY_STATIONARY_INTERVAL, "3600");
+    }
+
+    function setStationaryInterval(value as String) as Void {
+        Application.Storage.setValue(KEY_STATIONARY_INTERVAL, value);
+    }
+
+    function getStaticInterval() as String {
+        return getInterval(KEY_STATIC_INTERVAL, "60");
+    }
+
+    function setStaticInterval(value as String) as Void {
+        Application.Storage.setValue(KEY_STATIC_INTERVAL, value);
+    }
+
+    function getInterval(key as String, defaultValue as String) as String {
+        var value = Application.Storage.getValue(key);
+        return value == null ? defaultValue : value;
     }
 
     function isConfigured() as Boolean {

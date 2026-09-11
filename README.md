@@ -11,7 +11,9 @@ viewing position and saving manually placed points.
 ## Current capabilities
 
 - Connects to a configured TAK Server HTTPS endpoint using HTTP Basic auth.
-- Publishes GPS position as a CoT PLI event every 15 seconds while connected.
+- Defaults to dynamic GPS reporting: every 10 seconds while alerting, every
+	60 seconds while moving, and every hour while stationary. Static tracking is
+	also available and defaults to every 60 seconds.
 - Uses a stable `garmin-<callsign>` CoT UID and the configured server name as
   the callsign; the username is used when no server name is set.
 - Displays the watch's current position on a pan-and-zoom map.
@@ -24,8 +26,11 @@ viewing position and saving manually placed points.
 1. Open **TAK Server** from the main menu.
 2. Set the server host, port, username, password, and an optional server name
 	to use as the callsign.
-3. Select **Connect**. The app validates the server and starts PLI reporting.
-4. Open **Map** to browse the map, center on the current position, and add
+3. Select **Tracking Mode** and configure reporting intervals in seconds as
+	needed. Dynamic tracking is the default; a speed of at least 0.5 m/s is
+	considered moving.
+4. Select **Connect**. The app validates the server and starts PLI reporting.
+5. Open **Map** to browse the map, center on the current position, and add
 	local points.
 
 The current CoT publisher posts XML events to
@@ -46,8 +51,8 @@ field use.
 
 ## Implementation roadmap
 
-1. **CoT PLI publishing** - implemented: send a periodic `a-f-G-U-C` position
-	event to the TAK Server REST API.
+1. **CoT PLI publishing** - implemented: send periodic `a-f-G-U-C` position
+	events to the TAK Server REST API with dynamic or static scheduling.
 2. **CoT marker publishing** - publish points created on the map as CoT marker
 	events after the operator assigns their type.
 3. **Incoming CoT awareness** - retrieve supported REST CoT feeds and render
