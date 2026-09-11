@@ -11,40 +11,30 @@ secondary display and input surface.
 
 ## Current capabilities
 
-- Relays `pli`, `marker`, and `emergency` JSON envelopes to the ATAK phone
+- Relays `marker` and `emergency` JSON envelopes to the ATAK phone
 	companion through Garmin Connect IQ. No TAK endpoint or credentials are
 	stored on the watch.
-- Defaults to dynamic GPS reporting: every 10 seconds while alerting, every
-	60 seconds while moving, and every hour while stationary. Static tracking is
-	also available and defaults to every 60 seconds.
-- Uses a locally configurable watch label, team, and role as relay metadata;
-	ATAK remains the source identity and position for PLI.
+- Inherits callsign, team, role, reporting rate, and PLI ownership from ATAK;
+	the watch is a secondary map, point-drop, chat, and SOS interface.
 - Displays the watch's current position on a pan-and-zoom map.
 - Drops and saves 2525D-style friendly, hostile, unknown, and obstacle points
   as Garmin waypoints.
 - Publishes map points as typed CoT marker events after their type is selected.
-- Provides a confirmed SOS action that sends an emergency CoT event and uses
-	the configured alert reporting interval until the SOS control is selected
-	again to clear alerting.
+- Provides a confirmed SOS action that sends an emergency event through the
+	ATAK companion.
 - Displays phone-relayed `entity` or `entities` messages on the map.
 - Displays phone-relayed chat messages and sends `Rgr`, `Neg`, `ObjS`, or
 	`nPos` quick replies through the ATAK companion.
-- Preserves opt-in heart-rate, respiration-rate, and step telemetry in outbound
-	PLI payload metadata when the device makes those readings available.
 
 ## Using the app
 
 1. Install and start the WearTAK ATAK plugin on the paired Android phone.
-2. Open **Phone Companion** from the main menu and set an optional watch label.
-3. Select **Tracking Mode** and configure reporting intervals in seconds as
-	needed. Dynamic tracking is the default; a speed of at least 0.5 m/s is
-	considered moving.
-4. Select **Start relay**. The watch waits for Garmin Connect to acknowledge
-	its relay handshake before it starts reporting and requests an initial map
-	entity sync from the ATAK companion.
-5. Open **Map** to browse the map, center on the current position, and add
+2. Select **Start relay**. The watch waits for Garmin Connect to acknowledge
+	its relay handshake and requests an initial map entity sync from the ATAK
+	companion.
+3. Open **Map** to browse the map, center on the current position, and add
 	local points.
-6. Select **SOS** from the main menu for a confirmed emergency action, or
+4. Select **SOS** from the main menu for a confirmed emergency action, or
 	select **Clear SOS** after an alert is active.
 
 The ATAK companion may send incoming entities to the watch using `entity` or
@@ -52,9 +42,6 @@ The ATAK companion may send incoming entities to the watch using `entity` or
 `text`, and optional `uid` fields. **Send SOS** opens a separate confirmation before
 transmitting; selecting it again clears alerting.
 
-**Health telemetry** is disabled by default. When enabled, heart rate,
-respiration rate, and step values are included in the outbound PLI payload for
-the ATAK companion to map into CoT according to its policy.
 
 ## Platform limits
 
@@ -71,15 +58,11 @@ connection according to the deployment's operational policy.
 1. **Phone relay** - implemented: dictionary envelopes sent through Garmin
 	Connect IQ to the ATAK companion, with delivery-confirmed startup and an
 	initial entity-sync request.
-2. **Dynamic reporting** - implemented: watch input is scheduled at alert,
-	moving, stationary, or static intervals.
+2. **ATAK-owned PLI** - implemented: identity and reporting remain owned by
+	the ATAK companion.
 3. **Map input and incoming entities** - implemented: typed map points and
 	phone-relayed entities share the existing on-watch map.
 4. **SOS/manual alert** - implemented: confirmed alert and cancel envelopes.
-5. **Garmin sensors** - implemented as opt-in heart rate, respiration rate,
-	and daily step metadata. Environmental and other device-specific sensors
-	remain unsupported until a compatible watch and stable CoT mapping are
-	validated.
 
 ## Development
 

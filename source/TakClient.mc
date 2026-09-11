@@ -1,10 +1,8 @@
-import Toybox.ActivityMonitor;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Position;
 import Toybox.System;
 import Toybox.Time;
-import Toybox.Timer;
 import Toybox.WatchUi;
 
 class PhoneRelayListener extends Communications.ConnectionListener {
@@ -25,23 +23,11 @@ class PhoneRelayListener extends Communications.ConnectionListener {
 }
 
 
-// Handles the connection to a TAK server and periodic location reporting.
-//
-// NOTE: The Connect IQ Communications API has no support for installing a
-// client TLS certificate (mutual-TLS), so the standard TAK "certificate
-// enrollment" flow used by ATAK/WinTAK cannot be performed on-device. Instead
-// this connects over HTTPS using the entered username/password (HTTP Basic
-// auth), which most TAK servers also accept for REST access.
+// Relays watch input to ATAK, which owns TAK connectivity, identity, and PLI.
 class TakClient {
     var status as Symbol = :idle;
     var lastResponseCode as Number?  = null;
     var lastPosition as Position.Info?  = null;
-    var reportTimer as Timer.Timer?  = null;
-    var incomingTimer as Timer.Timer? = null;
-    var reconnectTimer as Timer.Timer? = null;
-    var scheduledInterval as Number? = null;
-    var reconnectAttempts as Number = 0;
-    var moving as Boolean = false;
     var alerting as Boolean = false;
     var statusCallback as Method?  = null;
     var incomingCotCallback as Method? = null;
@@ -53,11 +39,6 @@ class TakClient {
 
     function updatePosition(info as Position.Info) as Void {
         lastPosition = info;
-        var wasMoving = moving;
-        moving = info.speed != null && info.speed >= 0.5;
-        if (wasMoving != moving && isConnected() && TakSettings.getTrackingMode() == :dynamic) {
-            scheduleReporting(false);
-        }
     }
 
     function setAlerting(value as Boolean) as Void {
@@ -65,9 +46,6 @@ class TakClient {
             return;
         }
         alerting = value;
-        if (isConnected() && TakSettings.getTrackingMode() == :dynamic) {
-            scheduleReporting(false);
-        }
         if (!alerting) {
             sendEmergency(:CANCEL);
         }
@@ -75,12 +53,6 @@ class TakClient {
 
     function isAlerting() as Boolean {
         return alerting;
-    }
-
-    function refreshReportingSchedule() as Void {
-        if (isConnected()) {
-            scheduleReporting(false);
-        }
     }
 
     function isConnected() as Boolean {
@@ -92,76 +64,14 @@ class TakClient {
             return;
         }
         status = :connecting;
-        transmit("relay_hello", {"watchLabel" => callsign(), "protocolVersion" => 1});
+        transmit("relay_hello", {"watchLabel" => "Garmin watch", "protocolVersion" => 1});
         notifyStatusChanged();
     }
 
     function disconnect() as Void {
-        stopReporting();
         alerting = false;
         status = :idle;
         notifyStatusChanged();
-    }
-
-    function startReporting() as Void {
-        if (reportTimer == null) {
-            reportTimer = new Timer.Timer();
-        }
-        scheduleReporting(true);
-        sendLocation();
-    }
-
-    function stopReporting() as Void {
-        if (reportTimer != null) {
-            reportTimer.stop();
-        }
-        scheduledInterval = null;
-    }
-
-    function scheduleReporting(force as Boolean) as Void {
-        var interval = reportingIntervalSeconds() * 1000;
-        if (!force && scheduledInterval == interval) {
-            return;
-        }
-        if (reportTimer == null) {
-            reportTimer = new Timer.Timer();
-        }
-        reportTimer.stop();
-        reportTimer.start(method(:sendLocation), interval, true);
-        scheduledInterval = interval;
-    }
-
-    function reportingIntervalSeconds() as Number {
-        if (TakSettings.getTrackingMode() == :static) {
-            return configuredInterval(TakSettings.getStaticInterval(), 60);
-        }
-        if (alerting) {
-            return configuredInterval(TakSettings.getAlertInterval(), 10);
-        }
-        if (moving) {
-            return configuredInterval(TakSettings.getMovingInterval(), 60);
-        }
-        return configuredInterval(TakSettings.getStationaryInterval(), 3600);
-    }
-
-    function configuredInterval(value as String, defaultSeconds as Number) as Number {
-        var seconds = value.toNumber();
-        return seconds == null || seconds <= 0 ? defaultSeconds : seconds;
-    }
-
-    function sendLocation() as Void {
-        if (!isConnected() || lastPosition == null || lastPosition.position == null) {
-            return;
-        }
-        var degrees = lastPosition.position.toDegrees();
-        var payload = {
-            "lat" => degrees[0], "lon" => degrees[1], "hae" => lastPosition.altitude,
-            "course" => lastPosition.heading, "speed" => lastPosition.speed,
-            "cs" => callsign(), "team" => TakSettings.getTeam().toString(), "role" => TakSettings.getRole().toString(), "tStart" => cotTimestamp(Time.now()),
-            "tStale" => cotTimestamp(Time.now().add(new Time.Duration(120)))
-        };
-        addHealthTelemetry(payload);
-        transmit("pli", payload);
     }
 
     function onRelayTransmitComplete() as Void {
@@ -169,7 +79,6 @@ class TakClient {
             return;
         }
         status = :connected;
-        startReporting();
         transmit("entity_sync_request", {"limit" => 50, "protocolVersion" => 1});
         notifyStatusChanged();
     }
@@ -178,7 +87,6 @@ class TakClient {
         if (status == :idle) {
             return;
         }
-        stopReporting();
         alerting = false;
         status = :failed;
         notifyStatusChanged();
@@ -191,9 +99,9 @@ class TakClient {
         var degrees = location.toDegrees();
         var markerType = type == :hostile ? "a-h-G-E-S" : type == :friendly ? "a-f-G-E-S" : type == :obstacle ? "a-o-G-E-S" : "a-u-G-E-S";
         transmit("marker", {
-            "uid" => "garmin-" + callsign() + "-marker-" + id,
+            "uid" => "garmin-marker-" + id,
             "lat" => degrees[0], "lon" => degrees[1], "type" => markerType,
-            "title" => label, "cs" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "title" => label, "tStart" => cotTimestamp(Time.now()),
             "tStale" => cotTimestamp(Time.now().add(new Time.Duration(3600)))
         });
     }
@@ -212,9 +120,9 @@ class TakClient {
         }
         var degrees = lastPosition.position.toDegrees();
         transmit("emergency", {
-            "uid" => "garmin-" + callsign() + "-sos", "state" => state == :ALERT ? "ALERT" : "CANCEL",
+            "uid" => "garmin-sos", "state" => state == :ALERT ? "ALERT" : "CANCEL",
             "lat" => degrees[0], "lon" => degrees[1], "hae" => lastPosition.altitude,
-            "cs" => callsign(), "callsign" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "tStart" => cotTimestamp(Time.now()),
             "tStale" => cotTimestamp(Time.now().add(new Time.Duration(3600)))
         });
     }
@@ -223,24 +131,7 @@ class TakClient {
         if (!isConnected()) {
             return;
         }
-        transmit("chat", {"replyTo" => replyTo, "text" => text, "cs" => callsign()});
-    }
-
-    function addHealthTelemetry(payload as Dictionary) as Void {
-        if (!TakSettings.isHealthTelemetryEnabled()) {
-            return;
-        }
-        var info = ActivityMonitor.getInfo();
-        if (info.steps != null) {
-            payload.put("steps", info.steps);
-        }
-        if (info.respirationRate != null) {
-            payload.put("respirationRate", info.respirationRate);
-        }
-        var sample = ActivityMonitor.getHeartRateHistory(1, true).next();
-        if (sample != null && sample.heartRate != ActivityMonitor.INVALID_HR_SAMPLE) {
-            payload.put("heartRateBpm", sample.heartRate);
-        }
+        transmit("chat", {"replyTo" => replyTo, "text" => text});
     }
 
     function transmit(msgType as String, payload as Dictionary) as Void {
@@ -292,10 +183,6 @@ class TakClient {
         var info = Time.Gregorian.info(moment, Time.FORMAT_SHORT);
         return info.year.format("%04d") + "-" + info.month.format("%02d") + "-" + info.day.format("%02d")
             + "T" + info.hour.format("%02d") + ":" + info.min.format("%02d") + ":" + info.sec.format("%02d") + "Z";
-    }
-
-    function callsign() as String {
-        return TakSettings.getCallsign();
     }
 
     function notifyStatusChanged() as Void {

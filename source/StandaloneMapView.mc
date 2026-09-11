@@ -57,9 +57,6 @@ class StandaloneMapView extends WatchUi.MapTrackView {
     }
 
     function updateIncomingCot(uid as String, latitude, longitude, cotType as String) as Void {
-        if (takClient != null && uid.equals("garmin-" + takClient.callsign())) {
-            return;
-        }
         var location = new Position.Location({:latitude => latitude, :longitude => longitude, :format => :degrees});
         var marker = new StandaloneMapMarker(location);
         var icon = cotType.find("a-h-") != null ? iconForType(:hostile) : cotType.find("a-f-") != null ? iconForType(:friendly) : iconForType(:unknown);
