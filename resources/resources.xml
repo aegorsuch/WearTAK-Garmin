@@ -6,7 +6,7 @@
     <string id="MenuItemMap">Map</string>
     <string id="MenuItemChat">Chat</string>
     <string id="MenuItemSos">SOS</string>
-    <string id="MenuItemTakServer">Phone Companion</string>
+    <string id="MenuItemTakServer">ATAK Connect</string>
 
     <string id="MenuTitleChat">Chat</string>
     <string id="MenuTitleQuickReply">Quick Reply</string>
@@ -14,7 +14,7 @@
     <string id="ChatEmpty">No messages</string>
     <string id="ChatUnknownSender">Unknown</string>
 
-    <string id="MenuTitleTakServer">Phone Companion</string>
+    <string id="MenuTitleTakServer">ATAK Connect</string>
     <string id="LabelServerName">Watch label</string>
     <string id="LabelTeam">Team</string>
     <string id="LabelRole">Role</string>
