@@ -27,6 +27,8 @@ secondary display and input surface.
 	the configured alert reporting interval until the SOS control is selected
 	again to clear alerting.
 - Displays phone-relayed `entity` or `entities` messages on the map.
+- Displays phone-relayed chat messages and sends `Rgr`, `Neg`, `ObjS`, or
+	`nPos` quick replies through the ATAK companion.
 - Preserves opt-in heart-rate, respiration-rate, and step telemetry in outbound
 	PLI payload metadata when the device makes those readings available.
 
@@ -44,7 +46,8 @@ secondary display and input surface.
 	local points.
 
 The ATAK companion may send incoming entities to the watch using `entity` or
-`entities` envelopes. **Send SOS** opens a separate confirmation before
+`entities` envelopes. It may send chat using a `chat` envelope with `sender`,
+`text`, and optional `uid` fields. **Send SOS** opens a separate confirmation before
 transmitting; selecting it again clears alerting.
 
 **Health telemetry** is disabled by default. When enabled, heart rate,

@@ -45,6 +45,7 @@ class TakClient {
     var alerting as Boolean = false;
     var statusCallback as Method?  = null;
     var incomingCotCallback as Method? = null;
+    var incomingChatCallback as Method? = null;
 
     function initialize() {
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
@@ -218,6 +219,13 @@ class TakClient {
         });
     }
 
+    function sendChatReply(replyTo as String, text as String) as Void {
+        if (!isConnected()) {
+            return;
+        }
+        transmit("chat", {"replyTo" => replyTo, "text" => text, "cs" => callsign()});
+    }
+
     function addHealthTelemetry(payload as Dictionary) as Void {
         if (!TakSettings.isHealthTelemetryEnabled()) {
             return;
@@ -246,7 +254,14 @@ class TakClient {
         var envelope = message.data as Dictionary;
         var msgType = envelope.get("msgType");
         var payload = envelope.get("payload");
-        if ((msgType != "entity" && msgType != "entities") || !(payload instanceof Dictionary) || incomingCotCallback == null) {
+        if (!(payload instanceof Dictionary)) {
+            return;
+        }
+        if (msgType == "chat" && incomingChatCallback != null) {
+            incomingChatCallback.invoke(payload as Dictionary);
+            return;
+        }
+        if ((msgType != "entity" && msgType != "entities") || incomingCotCallback == null) {
             return;
         }
         if (msgType == "entity") {

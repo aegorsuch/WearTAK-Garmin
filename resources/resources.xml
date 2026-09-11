@@ -4,7 +4,13 @@
 
     <string id="MenuTitleMain">WearTAK</string>
     <string id="MenuItemMap">Map</string>
+    <string id="MenuItemChat">Chat</string>
     <string id="MenuItemTakServer">Phone Companion</string>
+
+    <string id="MenuTitleChat">Chat</string>
+    <string id="MenuTitleQuickReply">Quick Reply</string>
+    <string id="ChatEmpty">No messages</string>
+    <string id="ChatUnknownSender">Unknown</string>
 
     <string id="MenuTitleTakServer">Phone Companion</string>
     <string id="LabelServerName">Watch label</string>
