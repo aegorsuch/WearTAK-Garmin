@@ -3,6 +3,7 @@ import Toybox.Lang;
 import Toybox.Position;
 import Toybox.StringUtil;
 import Toybox.System;
+import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -91,25 +92,58 @@ class TakClient {
         }
 
         var degrees = lastPosition.position.toDegrees();
-        var payload = {
-            "callsign" => callsign(),
-            "lat" => degrees[0],
-            "lon" => degrees[1],
-            "altitude" => lastPosition.altitude,
-            "time" => System.getTimer()
-        };
+        var payload = buildPliEvent(degrees[0], degrees[1], lastPosition.altitude);
 
-        var url = baseUrl() + "/Marti/api/location";
+        var url = baseUrl() + "/Marti/api/cot";
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
                 "Authorization" => authHeader(),
-                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
+                "Content-Type" => "application/xml"
             },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_TEXT_PLAIN
         };
 
         Communications.makeWebRequest(url, payload, options, method(:onLocationResponse));
+    }
+
+    function buildPliEvent(latitude, longitude, altitude) as String {
+        var now = cotTimestamp(Time.now());
+        var stale = cotTimestamp(Time.now().add(new Time.Duration(60)));
+        var safeCallsign = xmlEscape(callsign());
+        var uid = xmlEscape("garmin-" + callsign());
+        var hae = altitude == null ? "9999999.0" : altitude.toString();
+
+        return "<event version=\"2.0\" uid=\"" + uid + "\" type=\"a-f-G-U-C\" time=\"" + now + "\" start=\"" + now + "\" stale=\"" + stale + "\" how=\"m-g\">"
+            + "<point lat=\"" + latitude.toString() + "\" lon=\"" + longitude.toString() + "\" hae=\"" + hae + "\" ce=\"9999999.0\" le=\"9999999.0\"/>"
+            + "<detail><contact callsign=\"" + safeCallsign + "\"/><uid Droid=\"" + safeCallsign + "\"/></detail></event>";
+    }
+
+    function cotTimestamp(moment as Time.Moment) as String {
+        var info = Time.Gregorian.info(moment, Time.FORMAT_SHORT);
+        return info.year.format("%04d") + "-" + info.month.format("%02d") + "-" + info.day.format("%02d")
+            + "T" + info.hour.format("%02d") + ":" + info.min.format("%02d") + ":" + info.sec.format("%02d") + "Z";
+    }
+
+    function xmlEscape(value as String) as String {
+        var escaped = "";
+        for (var index = 0; index < value.length(); index++) {
+            var character = value.substring(index, index + 1);
+            if (character.equals("&")) {
+                escaped += "&amp;";
+            } else if (character.equals("<")) {
+                escaped += "&lt;";
+            } else if (character.equals(">")) {
+                escaped += "&gt;";
+            } else if (character.equals("\"")) {
+                escaped += "&quot;";
+            } else if (character.equals("'")) {
+                escaped += "&apos;";
+            } else {
+                escaped += character;
+            }
+        }
+        return escaped;
     }
 
     function onLocationResponse(responseCode as Number, data as String?) as Void {
