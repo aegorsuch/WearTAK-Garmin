@@ -6,6 +6,7 @@ function buildMainMenu() as WatchUi.Menu2 {
     var menu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.MenuTitleMain)});
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemMap), null, :map, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemChat), null, :chat, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemSos), null, :sos, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemTakServer), null, :takServer, null));
     return menu;
 }
@@ -27,6 +28,9 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == :chat) {
             var chatMenu = buildChatMenu(app);
             WatchUi.pushView(chatMenu, new ChatMenuDelegate(app), WatchUi.SLIDE_LEFT);
+        } else if (id == :sos) {
+            var sosMenu = buildSosMenu(app);
+            WatchUi.pushView(sosMenu, new SosMenuDelegate(app), WatchUi.SLIDE_LEFT);
         } else if (id == :takServer) {
             var takMenu = buildTakServerMenu();
             WatchUi.pushView(takMenu, new TakServerMenuDelegate(app, takMenu), WatchUi.SLIDE_LEFT);

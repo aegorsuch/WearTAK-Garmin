@@ -6,3 +6,7 @@
 
 # Private Garmin signing key
 /developer_key.der
+
+# Local reference archives
+/WearTAK-ATAK-Plugin-develop.zip
+/wearos-tak-civ-develop.zip

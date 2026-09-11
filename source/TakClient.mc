@@ -157,7 +157,7 @@ class TakClient {
         var payload = {
             "lat" => degrees[0], "lon" => degrees[1], "hae" => lastPosition.altitude,
             "course" => lastPosition.heading, "speed" => lastPosition.speed,
-            "cs" => callsign(), "tStart" => cotTimestamp(Time.now()),
+            "cs" => callsign(), "team" => TakSettings.getTeam().toString(), "role" => TakSettings.getRole().toString(), "tStart" => cotTimestamp(Time.now()),
             "tStale" => cotTimestamp(Time.now().add(new Time.Duration(120)))
         };
         addHealthTelemetry(payload);

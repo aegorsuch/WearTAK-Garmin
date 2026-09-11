@@ -5,6 +5,8 @@ import Toybox.WatchUi;
 function buildTakServerMenu() as WatchUi.Menu2 {
     var menu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.MenuTitleTakServer)});
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelServerName), displayValue(TakSettings.getCallsign()), :serverName, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelTeam), TakSettings.getTeam().toString(), :team, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelRole), TakSettings.getRole().toString(), :role, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelTrackingMode), trackingModeLabel(), :trackingMode, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelAlertInterval), TakSettings.getAlertInterval(), :alertInterval, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelMovingInterval), TakSettings.getMovingInterval(), :movingInterval, null));
@@ -18,18 +20,6 @@ function buildTakServerMenu() as WatchUi.Menu2 {
 
 function displayValue(value as String) as String {
     return value.equals("") ? WatchUi.loadResource(Rez.Strings.LabelNotSet) : value;
-}
-
-function maskedPassword() as String {
-    var password = TakSettings.getPassword();
-    if (password.equals("")) {
-        return WatchUi.loadResource(Rez.Strings.LabelNotSet);
-    }
-    var masked = "";
-    for (var i = 0; i < password.length(); i++) {
-        masked = masked + "*";
-    }
-    return masked;
 }
 
 function connectActionLabel() as String {
@@ -62,6 +52,10 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         if (id == :serverName) {
             editField(:serverName, TakSettings.getCallsign());
+        } else if (id == :team) {
+            showTeamMenu();
+        } else if (id == :role) {
+            showRoleMenu();
         } else if (id == :trackingMode) {
             showTrackingModeMenu();
         } else if (id == :alertInterval) {
@@ -87,6 +81,30 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         trackingMenu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.TrackingModeDynamic), null, :dynamic, null));
         trackingMenu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.TrackingModeStatic), null, :static, null));
         WatchUi.pushView(trackingMenu, new TrackingModeMenuDelegate(self), WatchUi.SLIDE_UP);
+    }
+
+    function showTeamMenu() as Void {
+        var teamMenu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.LabelTeam)});
+        teamMenu.addItem(new WatchUi.MenuItem("Blue", null, :blue, null));
+        teamMenu.addItem(new WatchUi.MenuItem("Red", null, :red, null));
+        WatchUi.pushView(teamMenu, new IdentityMenuDelegate(self, :team), WatchUi.SLIDE_UP);
+    }
+
+    function showRoleMenu() as Void {
+        var roleMenu = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.LabelRole)});
+        roleMenu.addItem(new WatchUi.MenuItem("Member", null, :member, null));
+        roleMenu.addItem(new WatchUi.MenuItem("Lead", null, :lead, null));
+        roleMenu.addItem(new WatchUi.MenuItem("Medic", null, :medic, null));
+        WatchUi.pushView(roleMenu, new IdentityMenuDelegate(self, :role), WatchUi.SLIDE_UP);
+    }
+
+    function onIdentitySelected(field as Symbol, value) as Void {
+        if (field == :team) {
+            TakSettings.setTeam(value);
+        } else {
+            TakSettings.setRole(value);
+        }
+        refreshItem(field);
     }
 
     function onTrackingModeSelected(mode) as Void {
@@ -141,6 +159,10 @@ class TakServerMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
         if (fieldId == :serverName) {
             item.setSubLabel(displayValue(TakSettings.getCallsign()));
+        } else if (fieldId == :team) {
+            item.setSubLabel(TakSettings.getTeam().toString());
+        } else if (fieldId == :role) {
+            item.setSubLabel(TakSettings.getRole().toString());
         } else if (fieldId == :trackingMode) {
             item.setSubLabel(trackingModeLabel());
         } else if (fieldId == :alertInterval) {
@@ -221,6 +243,26 @@ class TrackingModeMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         parent.onTrackingModeSelected(item.getId());
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+}
+
+class IdentityMenuDelegate extends WatchUi.Menu2InputDelegate {
+    var parent as TakServerMenuDelegate;
+    var field as Symbol;
+
+    function initialize(parentDelegate as TakServerMenuDelegate, fieldId as Symbol) {
+        Menu2InputDelegate.initialize();
+        parent = parentDelegate;
+        field = fieldId;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        parent.onIdentitySelected(field, item.getId());
         WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 

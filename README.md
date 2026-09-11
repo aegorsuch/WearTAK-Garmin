@@ -17,8 +17,8 @@ secondary display and input surface.
 - Defaults to dynamic GPS reporting: every 10 seconds while alerting, every
 	60 seconds while moving, and every hour while stationary. Static tracking is
 	also available and defaults to every 60 seconds.
-- Uses a locally configurable watch label as metadata for marker and emergency
-	input; ATAK remains the source identity and position for PLI.
+- Uses a locally configurable watch label, team, and role as relay metadata;
+	ATAK remains the source identity and position for PLI.
 - Displays the watch's current position on a pan-and-zoom map.
 - Drops and saves 2525D-style friendly, hostile, unknown, and obstacle points
   as Garmin waypoints.
@@ -44,6 +44,8 @@ secondary display and input surface.
 	entity sync from the ATAK companion.
 5. Open **Map** to browse the map, center on the current position, and add
 	local points.
+6. Select **SOS** from the main menu for a confirmed emergency action, or
+	select **Clear SOS** after an alert is active.
 
 The ATAK companion may send incoming entities to the watch using `entity` or
 `entities` envelopes. It may send chat using a `chat` envelope with `sender`,

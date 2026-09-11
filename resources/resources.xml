@@ -5,15 +5,19 @@
     <string id="MenuTitleMain">WearTAK</string>
     <string id="MenuItemMap">Map</string>
     <string id="MenuItemChat">Chat</string>
+    <string id="MenuItemSos">SOS</string>
     <string id="MenuItemTakServer">Phone Companion</string>
 
     <string id="MenuTitleChat">Chat</string>
     <string id="MenuTitleQuickReply">Quick Reply</string>
+    <string id="MenuTitleSos">SOS</string>
     <string id="ChatEmpty">No messages</string>
     <string id="ChatUnknownSender">Unknown</string>
 
     <string id="MenuTitleTakServer">Phone Companion</string>
     <string id="LabelServerName">Watch label</string>
+    <string id="LabelTeam">Team</string>
+    <string id="LabelRole">Role</string>
     <string id="LabelUsername">Username</string>
     <string id="LabelPassword">Password</string>
     <string id="LabelPort">Port</string>
@@ -31,6 +35,7 @@
     <string id="LabelDisabled">Disabled</string>
     <string id="LabelSosControl">SOS / Clear</string>
     <string id="LabelSendSos">Send SOS</string>
+    <string id="LabelClearSos">Clear SOS</string>
     <string id="LabelCancel">Cancel</string>
     <string id="ConfirmSosTitle">Send SOS?</string>
     <string id="LabelConnect">Start relay</string>
