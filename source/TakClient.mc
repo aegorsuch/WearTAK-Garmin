@@ -32,6 +32,7 @@ class TakClient {
     var statusCallback as Method?  = null;
     var incomingCotCallback as Method? = null;
     var incomingChatCallback as Method? = null;
+    var pendingMarkerOperations = [];
 
     function initialize() {
         Communications.registerForPhoneAppMessages(method(:onPhoneMessage));
@@ -80,6 +81,7 @@ class TakClient {
         }
         status = :connected;
         transmit("entity_sync_request", {"limit" => 50, "protocolVersion" => 1});
+        flushMarkerOperations();
         notifyStatusChanged();
     }
 
@@ -92,18 +94,44 @@ class TakClient {
         notifyStatusChanged();
     }
 
-    function sendMarker(id as String, location as Position.Location, type as Symbol, label as String) as Void {
+    function sendMarker(id as String, location as Position.Location, type as Symbol, label as String, remark as String) as Void {
         if (!isConnected()) {
+            pendingMarkerOperations.add({"op" => "upsert", "id" => id, "location" => location, "type" => type, "label" => label, "remark" => remark});
             return;
         }
+        transmitMarker(id, location, type, label, remark);
+    }
+
+    function deleteMarker(id as String) as Void {
+        if (!isConnected()) {
+            pendingMarkerOperations.add({"op" => "delete", "id" => id});
+            return;
+        }
+        transmit("marker_delete", {"uid" => "garmin-marker-" + id});
+    }
+
+    function transmitMarker(id as String, location as Position.Location, type as Symbol, label as String, remark as String) as Void {
         var degrees = location.toDegrees();
         var markerType = type == :hostile ? "a-h-G-E-S" : type == :friendly ? "a-f-G-E-S" : type == :obstacle ? "a-o-G-E-S" : "a-u-G-E-S";
         transmit("marker", {
             "uid" => "garmin-marker-" + id,
             "lat" => degrees[0], "lon" => degrees[1], "type" => markerType,
-            "title" => label, "tStart" => cotTimestamp(Time.now()),
+            "title" => label, "remark" => remark, "tStart" => cotTimestamp(Time.now()),
             "tStale" => cotTimestamp(Time.now().add(new Time.Duration(3600)))
         });
+    }
+
+    function flushMarkerOperations() as Void {
+        var operations = pendingMarkerOperations;
+        pendingMarkerOperations = [];
+        for (var i = 0; i < operations.size(); i++) {
+            var operation = operations[i] as Dictionary;
+            if (operation.get("op") == "delete") {
+                deleteMarker(operation.get("id").toString());
+            } else {
+                transmitMarker(operation.get("id").toString(), operation.get("location") as Position.Location, operation.get("type") as Symbol, operation.get("label").toString(), operation.get("remark").toString());
+            }
+        }
     }
 
     function sendSosEvent() as Void {

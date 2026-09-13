@@ -8,6 +8,7 @@ function buildMainMenu() as WatchUi.Menu2 {
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemChat), null, :chat, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemSos), null, :sos, null));
     menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemTakServer), null, :takServer, null));
+    menu.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.MenuItemClearPoints), null, :clearPoints, null));
     return menu;
 }
 
@@ -34,6 +35,32 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         } else if (id == :takServer) {
             var takMenu = buildTakServerMenu();
             WatchUi.pushView(takMenu, new TakServerMenuDelegate(app, takMenu), WatchUi.SLIDE_LEFT);
+        } else if (id == :clearPoints) {
+            var confirmation = new WatchUi.Menu2({:title => WatchUi.loadResource(Rez.Strings.ConfirmClearPointsTitle)});
+            confirmation.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelClearPoints), null, :clear, null));
+            confirmation.addItem(new WatchUi.MenuItem(WatchUi.loadResource(Rez.Strings.LabelCancel), null, :cancel, null));
+            WatchUi.pushView(confirmation, new ClearPointsDelegate(app), WatchUi.SLIDE_UP);
         }
+    }
+}
+
+class ClearPointsDelegate extends WatchUi.Menu2InputDelegate {
+    var app as StandaloneApp;
+
+    function initialize(application as StandaloneApp) {
+        Menu2InputDelegate.initialize();
+        app = application;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        if (item.getId() == :clear) {
+            app.getMapView().clearDroppedPoints();
+            WatchUi.showToast("Old points cleared", null);
+        }
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+    }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
     }
 }

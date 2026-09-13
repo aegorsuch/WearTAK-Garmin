@@ -17,8 +17,15 @@ secondary display and input surface.
 - Inherits callsign, team, role, reporting rate, and PLI ownership from ATAK;
 	the watch is a secondary map, point-drop, chat, and SOS interface.
 - Displays the watch's current position on a pan-and-zoom map.
-- Drops and saves 2525D-style friendly, hostile, unknown, and obstacle points
-  as Garmin waypoints.
+- Drops app-owned 2525D-style friendly, hostile, unknown, and obstacle points
+	without creating Garmin saved-location flags.
+- Lets the user set a dropped point's title and remark after selecting it on
+	the map, and relays those fields to ATAK.
+- Uses an explicit drop mode: select the drop control, tap the map, then select
+	a point to change its type, title, remark, or delete it.
+- Supports swipe, flick, and drag map panning, plus recenter and zoom controls.
+- Provides a confirmed cleanup action for legacy Garmin waypoints named
+	`Unknown 2525D point`.
 - Publishes map points as typed CoT marker events after their type is selected.
 - Provides a confirmed SOS action that sends an emergency event through the
 	ATAK companion.
@@ -41,6 +48,11 @@ The ATAK companion may send incoming entities to the watch using `entity` or
 `entities` envelopes. It may send chat using a `chat` envelope with `sender`,
 `text`, and optional `uid` fields. **Send SOS** opens a separate confirmation before
 transmitting; selecting it again clears alerting.
+
+Marker create and update operations use the `marker` envelope. Deletion uses a
+`marker_delete` envelope with the Garmin marker UID, for example
+`garmin-marker-point-1`. The ATAK companion should remove that UID from its
+authoritative map state when it receives the deletion envelope.
 
 
 ## Platform limits

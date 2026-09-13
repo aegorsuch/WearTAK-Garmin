@@ -7,6 +7,9 @@
     <string id="MenuItemChat">Chat</string>
     <string id="MenuItemSos">SOS</string>
     <string id="MenuItemTakServer">ATAK Connect</string>
+    <string id="MenuItemClearPoints">Clear old 2525D points</string>
+    <string id="ConfirmClearPointsTitle">Clear old points?</string>
+    <string id="LabelClearPoints">Clear points</string>
 
     <string id="MenuTitleChat">Chat</string>
     <string id="MenuTitleQuickReply">Quick Reply</string>
@@ -46,4 +49,6 @@
     <string id="StatusRetrying">Retrying</string>
     <string id="StatusConnected">Relay active</string>
     <string id="StatusFailed">Failed</string>
+    <string id="StatusDropArmed">Tap map to place point</string>
+    <string id="StatusDropCancelled">Drop cancelled</string>
 </resources>
