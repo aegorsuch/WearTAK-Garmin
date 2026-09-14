@@ -70,7 +70,9 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         if (!markers.hasKey(markerId)) {
             incomingIds.add(markerId);
             if (incomingIds.size() > 50) {
-                markers.remove(incomingIds.remove(0));
+                var oldestId = incomingIds.remove(0);
+                markers.remove(oldestId);
+                incomingLastSeen.remove(oldestId);
             }
         }
         incomingLastSeen.put(markerId, Time.now().value());
@@ -331,6 +333,9 @@ class StandaloneMapView extends WatchUi.MapTrackView {
             markers.remove(staleIds[j]);
             incomingLastSeen.remove(staleIds[j]);
             incomingIds.remove(staleIds[j]);
+        }
+        if (staleIds.size() > 0) {
+            setMapMarker(markers.values());
         }
     }
 

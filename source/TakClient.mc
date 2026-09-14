@@ -96,7 +96,7 @@ class TakClient {
 
     function sendMarker(id as String, location as Position.Location, type as Symbol, label as String, remark as String) as Void {
         if (!isConnected()) {
-            pendingMarkerOperations.add({"op" => "upsert", "id" => id, "location" => location, "type" => type, "label" => label, "remark" => remark});
+            queueMarkerOperation({"op" => "upsert", "id" => id, "location" => location, "type" => type, "label" => label, "remark" => remark});
             return;
         }
         transmitMarker(id, location, type, label, remark);
@@ -104,10 +104,20 @@ class TakClient {
 
     function deleteMarker(id as String) as Void {
         if (!isConnected()) {
-            pendingMarkerOperations.add({"op" => "delete", "id" => id});
+            queueMarkerOperation({"op" => "delete", "id" => id});
             return;
         }
         transmit("marker_delete", {"uid" => "garmin-marker-" + id});
+    }
+
+    function queueMarkerOperation(operation as Dictionary) as Void {
+        var id = operation.get("id").toString();
+        for (var index = pendingMarkerOperations.size() - 1; index >= 0; index--) {
+            if (pendingMarkerOperations[index].get("id").toString() == id) {
+                pendingMarkerOperations.remove(index);
+            }
+        }
+        pendingMarkerOperations.add(operation);
     }
 
     function transmitMarker(id as String, location as Position.Location, type as Symbol, label as String, remark as String) as Void {
