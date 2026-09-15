@@ -4,6 +4,7 @@ import Toybox.PersistedContent;
 import Toybox.Position;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
 class StandaloneMapMarker extends WatchUi.MapMarker {
@@ -28,6 +29,8 @@ class StandaloneMapView extends WatchUi.MapTrackView {
     var controlGap = 6;
     var controlMargin = 8;
     var dropMode = false;
+    var hasInitialPosition = false;
+    var entityPruneTimer;
 
     function initialize() {
         WatchUi.MapTrackView.initialize();
@@ -36,6 +39,8 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         setScreenVisibleArea(0, 0, screenWidth, screenHeight);
         setMapMode(WatchUi.MAP_MODE_BROWSE);
         centerOn(null);
+        entityPruneTimer = new Timer.Timer();
+        entityPruneTimer.start(method(:pruneIncomingEntitiesOnTimer), 60000, true);
     }
 
     function updatePosition(info) {
@@ -43,7 +48,7 @@ class StandaloneMapView extends WatchUi.MapTrackView {
             return;
         }
 
-        if (mapTopLeft == null) {
+        if (!hasInitialPosition) {
             centerOn(info.position);
         }
 
@@ -84,6 +89,7 @@ class StandaloneMapView extends WatchUi.MapTrackView {
 
     function centerOn(position) {
         var center = [0.0, 0.0];
+        hasInitialPosition = position != null;
         if (position != null) {
             center = position.toDegrees();
         }
@@ -320,7 +326,7 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         WatchUi.requestUpdate();
     }
 
-    function pruneIncomingEntities() {
+    function pruneIncomingEntities() as Boolean {
         var now = Time.now().value();
         var staleIds = [];
         var ids = incomingLastSeen.keys();
@@ -336,6 +342,13 @@ class StandaloneMapView extends WatchUi.MapTrackView {
         }
         if (staleIds.size() > 0) {
             setMapMarker(markers.values());
+        }
+        return staleIds.size() > 0;
+    }
+
+    function pruneIncomingEntitiesOnTimer() as Void {
+        if (pruneIncomingEntities()) {
+            WatchUi.requestUpdate();
         }
     }
 
